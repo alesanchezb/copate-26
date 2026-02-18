@@ -1,0 +1,63 @@
+[I 2026-02-12 12:44:50.549 ServerApp] jupyter_lsp | extension was successfully linked.
+[I 2026-02-12 12:44:50.551 ServerApp] jupyter_server_terminals | extension was successfully linked.
+[I 2026-02-12 12:44:50.554 ServerApp] jupyterlab | extension was successfully linked.
+[I 2026-02-12 12:44:50.762 ServerApp] notebook_shim | extension was successfully linked.
+[I 2026-02-12 12:44:50.776 ServerApp] notebook_shim | extension was successfully loaded.
+[I 2026-02-12 12:44:50.777 ServerApp] jupyter_lsp | extension was successfully loaded.
+[I 2026-02-12 12:44:50.777 ServerApp] jupyter_server_terminals | extension was successfully loaded.
+[I 2026-02-12 12:44:50.779 LabApp] JupyterLab extension loaded from /home/alesanchezb/Documents/uni/copate/.env/lib/python3.13/site-packages/jupyterlab
+[I 2026-02-12 12:44:50.779 LabApp] JupyterLab application directory is /home/alesanchezb/Documents/uni/copate/.env/share/jupyter/lab
+[I 2026-02-12 12:44:50.779 LabApp] Extension Manager is 'pypi'.
+[I 2026-02-12 12:44:50.804 ServerApp] jupyterlab | extension was successfully loaded.
+[I 2026-02-12 12:44:50.805 ServerApp] Serving notebooks from local directory: /home/alesanchezb/Documents/uni/copate
+[I 2026-02-12 12:44:50.805 ServerApp] Jupyter Server 2.17.0 is running at:
+[I 2026-02-12 12:44:50.805 ServerApp] http://localhost:8888/lab?token=e3ad699140f301609cdf7ada13ddc1514a1997d83a3bf780
+[I 2026-02-12 12:44:50.805 ServerApp]     http://127.0.0.1:8888/lab?token=e3ad699140f301609cdf7ada13ddc1514a1997d83a3bf780
+[I 2026-02-12 12:44:50.805 ServerApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 2026-02-12 12:44:50.834 ServerApp] 
+    
+    To access the server, open this file in a browser:
+        file:///home/alesanchezb/.local/share/jupyter/runtime/jpserver-4336-open.html
+    Or copy and paste one of these URLs:
+        http://localhost:8888/lab?token=e3ad699140f301609cdf7ada13ddc1514a1997d83a3bf780
+        http://127.0.0.1:8888/lab?token=e3ad699140f301609cdf7ada13ddc1514a1997d83a3bf780
+[I 2026-02-12 12:44:50.950 ServerApp] Skipped non-installed server(s): basedpyright, bash-language-server, dockerfile-language-server-nodejs, javascript-typescript-langserver, jedi-language-server, julia-language-server, pyrefly, pyright, python-language-server, python-lsp-server, r-languageserver, sql-language-server, texlab, typescript-language-server, unified-language-server, vscode-css-languageserver-bin, vscode-html-languageserver-bin, vscode-json-languageserver-bin, yaml-language-server
+[I 2026-02-12 12:44:52.930 LabApp] Build is up to date
+[W 2026-02-12 12:44:52.995 ServerApp] 404 GET /api/contents/plano_procesado.jpg?content=0&hash=0&1770925492987 (49d788a5adf146728f89ab76a009ac87@127.0.0.1) 1.61ms referer=http://localhost:8888/lab
+[W 2026-02-12 12:44:52.995 ServerApp] 404 GET /api/contents/plano_procesado.jpg?content=0&hash=0&1770925492987 (127.0.0.1): No such file or directory: plano_procesado.jpg
+[W 2026-02-12 12:44:52.997 ServerApp] 404 GET /api/contents/data/example_2/Architectural?content=0&hash=0&1770925492987 (49d788a5adf146728f89ab76a009ac87@127.0.0.1) 1.44ms referer=http://localhost:8888/lab
+[W 2026-02-12 12:44:52.997 ServerApp] 404 GET /api/contents/data/example_2/Architectural?content=0&hash=0&1770925492987 (127.0.0.1): No such file or directory: data/example_2/Architectural
+[W 2026-02-12 12:44:52.998 ServerApp] 404 GET /api/contents/data/example_2/Architectural/A1-01-FLOOR-PLAN-Rev.0.pdf?content=0&hash=0&1770925492987 (49d788a5adf146728f89ab76a009ac87@127.0.0.1) 1.82ms referer=http://localhost:8888/lab
+[W 2026-02-12 12:44:52.998 ServerApp] 404 GET /api/contents/data/example_2/Architectural/A1-01-FLOOR-PLAN-Rev.0.pdf?content=0&hash=0&1770925492987 (127.0.0.1): No such file or directory: data/example_2/Architectural/A1-01-FLOOR-PLAN-Rev.0.pdf
+[W 2026-02-12 12:44:52.999 ServerApp] 404 GET /api/contents/data/example_1/Architectural/A01.12-TRASH-ENCLOSURE-DETAILS-Rev.2.pdf?content=0&hash=0&1770925492988 (49d788a5adf146728f89ab76a009ac87@127.0.0.1) 2.45ms referer=http://localhost:8888/lab
+[W 2026-02-12 12:44:52.999 ServerApp] 404 GET /api/contents/data/example_1/Architectural/A01.12-TRASH-ENCLOSURE-DETAILS-Rev.2.pdf?content=0&hash=0&1770925492988 (127.0.0.1): No such file or directory: data/example_1/Architectural/A01.12-TRASH-ENCLOSURE-DETAILS-Rev.2.pdf
+[W 2026-02-12 12:44:53.001 ServerApp] 404 GET /api/contents/data/example_1/Architectural?content=0&hash=0&1770925492987 (49d788a5adf146728f89ab76a009ac87@127.0.0.1) 3.10ms referer=http://localhost:8888/lab
+[W 2026-02-12 12:44:53.001 ServerApp] 404 GET /api/contents/data/example_1/Architectural?content=0&hash=0&1770925492987 (127.0.0.1): No such file or directory: data/example_1/Architectural
+[W 2026-02-12 12:44:53.002 ServerApp] 404 GET /api/contents/data/example_1/Architectural/A01.02-ARCHITECTURAL-SITE-DETAILS-Rev.2.pdf?content=0&hash=0&1770925492988 (49d788a5adf146728f89ab76a009ac87@127.0.0.1) 2.95ms referer=http://localhost:8888/lab
+[W 2026-02-12 12:44:53.002 ServerApp] 404 GET /api/contents/data/example_1/Architectural/A01.02-ARCHITECTURAL-SITE-DETAILS-Rev.2.pdf?content=0&hash=0&1770925492988 (127.0.0.1): No such file or directory: data/example_1/Architectural/A01.02-ARCHITECTURAL-SITE-DETAILS-Rev.2.pdf
+[W 2026-02-12 12:44:53.003 ServerApp] 404 GET /api/contents/data/example_1/Architectural/A01.01-ARCHITECTURE-SITE-PLAN-Rev.2.pdf?content=0&hash=0&1770925492988 (49d788a5adf146728f89ab76a009ac87@127.0.0.1) 3.44ms referer=http://localhost:8888/lab
+[W 2026-02-12 12:44:53.003 ServerApp] 404 GET /api/contents/data/example_1/Architectural/A01.01-ARCHITECTURE-SITE-PLAN-Rev.2.pdf?content=0&hash=0&1770925492988 (127.0.0.1): No such file or directory: data/example_1/Architectural/A01.01-ARCHITECTURE-SITE-PLAN-Rev.2.pdf
+[W 2026-02-12 12:44:53.004 ServerApp] 404 GET /api/contents/plano_procesado.jpg?content=0&hash=0&1770925492988 (49d788a5adf146728f89ab76a009ac87@127.0.0.1) 0.76ms referer=http://localhost:8888/lab
+[W 2026-02-12 12:44:53.004 ServerApp] 404 GET /api/contents/plano_procesado.jpg?content=0&hash=0&1770925492988 (127.0.0.1): No such file or directory: plano_procesado.jpg
+[W 2026-02-12 12:44:53.006 ServerApp] 404 GET /api/contents/data/example_2/Architectural/A1-01-FLOOR-PLAN-Rev.0.pdf?content=0&hash=0&1770925492988 (49d788a5adf146728f89ab76a009ac87@127.0.0.1) 0.80ms referer=http://localhost:8888/lab
+[W 2026-02-12 12:44:53.006 ServerApp] 404 GET /api/contents/data/example_2/Architectural/A1-01-FLOOR-PLAN-Rev.0.pdf?content=0&hash=0&1770925492988 (127.0.0.1): No such file or directory: data/example_2/Architectural/A1-01-FLOOR-PLAN-Rev.0.pdf
+[W 2026-02-12 12:44:53.018 ServerApp] 404 GET /api/contents/data/example_1/Architectural/A01.12-TRASH-ENCLOSURE-DETAILS-Rev.2.pdf?content=0&hash=0&1770925492989 (49d788a5adf146728f89ab76a009ac87@127.0.0.1) 0.79ms referer=http://localhost:8888/lab
+[W 2026-02-12 12:44:53.018 ServerApp] 404 GET /api/contents/data/example_1/Architectural/A01.12-TRASH-ENCLOSURE-DETAILS-Rev.2.pdf?content=0&hash=0&1770925492989 (127.0.0.1): No such file or directory: data/example_1/Architectural/A01.12-TRASH-ENCLOSURE-DETAILS-Rev.2.pdf
+[W 2026-02-12 12:44:53.031 ServerApp] 404 GET /api/contents/data/example_1/Architectural/A01.02-ARCHITECTURAL-SITE-DETAILS-Rev.2.pdf?content=0&hash=0&1770925492989 (49d788a5adf146728f89ab76a009ac87@127.0.0.1) 0.77ms referer=http://localhost:8888/lab
+[W 2026-02-12 12:44:53.031 ServerApp] 404 GET /api/contents/data/example_1/Architectural/A01.02-ARCHITECTURAL-SITE-DETAILS-Rev.2.pdf?content=0&hash=0&1770925492989 (127.0.0.1): No such file or directory: data/example_1/Architectural/A01.02-ARCHITECTURAL-SITE-DETAILS-Rev.2.pdf
+[W 2026-02-12 12:44:53.045 ServerApp] 404 GET /api/contents/data/example_1/Architectural/A01.01-ARCHITECTURE-SITE-PLAN-Rev.2.pdf?content=0&hash=0&1770925492989 (49d788a5adf146728f89ab76a009ac87@127.0.0.1) 1.17ms referer=http://localhost:8888/lab
+[W 2026-02-12 12:44:53.045 ServerApp] 404 GET /api/contents/data/example_1/Architectural/A01.01-ARCHITECTURE-SITE-PLAN-Rev.2.pdf?content=0&hash=0&1770925492989 (127.0.0.1): No such file or directory: data/example_1/Architectural/A01.01-ARCHITECTURE-SITE-PLAN-Rev.2.pdf
+[I 2026-02-12 12:44:53.538 ServerApp] Kernel started: 4d68ff8c-2821-4f11-96ab-33bcdb32ff87
+[I 2026-02-12 12:44:53.938 ServerApp] Adapting from protocol version 5.3 (kernel 4d68ff8c-2821-4f11-96ab-33bcdb32ff87) to 5.4 (client).
+[I 2026-02-12 12:44:53.939 ServerApp] Connecting to kernel 4d68ff8c-2821-4f11-96ab-33bcdb32ff87.
+[W 2026-02-12 12:44:53.940 ServerApp] The websocket_ping_timeout (90000) cannot be longer than the websocket_ping_interval (30000).
+    Setting websocket_ping_timeout=30000
+[I 2026-02-12 12:44:53.942 ServerApp] Adapting from protocol version 5.3 (kernel 4d68ff8c-2821-4f11-96ab-33bcdb32ff87) to 5.4 (client).
+[I 2026-02-12 12:44:53.943 ServerApp] Connecting to kernel 4d68ff8c-2821-4f11-96ab-33bcdb32ff87.
+[I 2026-02-12 12:44:53.947 ServerApp] Adapting from protocol version 5.3 (kernel 4d68ff8c-2821-4f11-96ab-33bcdb32ff87) to 5.4 (client).
+[I 2026-02-12 12:44:53.948 ServerApp] Connecting to kernel 4d68ff8c-2821-4f11-96ab-33bcdb32ff87.
+[I 2026-02-12 12:45:06.878 ServerApp] Starting buffering for 4d68ff8c-2821-4f11-96ab-33bcdb32ff87:91c60a67-3c51-436b-951f-a6a56e45e951
+[C 2026-02-12 13:57:31.091 ServerApp] received signal 15, stopping
+[I 2026-02-12 13:57:31.092 ServerApp] Shutting down 4 extensions
+[I 2026-02-12 13:57:31.093 ServerApp] Shutting down 1 kernel
+[I 2026-02-12 13:57:31.093 ServerApp] Kernel shutdown: 4d68ff8c-2821-4f11-96ab-33bcdb32ff87
