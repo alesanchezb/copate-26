@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Inspección Manual</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body class="bg-dark text-white">
+
+<div class="container mt-5">
+
+    <h1 class="text-center mb-5">INSPECCIÓN MANUAL DE PALLETS</h1>
+
+    <table class="table table-dark table-bordered text-center">
+        <thead>
+            <tr>
+                <th>Pallet</th>
+                <th>Total Soldaduras</th>
+                <th>Estado</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pallet in pallets %}
+            <tr>
+                <td><strong>{{ pallet['pallet_id'] }}</strong></td>
+                <td>{{ pallet['total'] }}</td>
+
+                <td>
+                    {% if pallet['welding_result'] == "Correcto" %}
+                        <span class="text-success font-weight-bold">CORRECTO</span>
+                    {% elif pallet['welding_result'] == "Incorrecto" %}
+                        <span class="text-danger font-weight-bold">INCORRECTO</span>
+                    {% else %}
+                        <span class="text-warning font-weight-bold">SIN REGISTRAR</span>
+                    {% endif %}
+                </td>
+
+                <td>
+                    <button class="btn btn-success btn-lg mr-2"
+                        onclick="setResult('{{ pallet['pallet_id'] }}','Correcto')">
+                        ✔
+                    </button>
+
+                    <button class="btn btn-danger btn-lg"
+                        onclick="setResult('{{ pallet['pallet_id'] }}','Incorrecto')">
+                        ✖
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+<script>
+function setResult(pallet_id, result) {
+    fetch('/set_result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            pallet_id: pallet_id,
+            result: result
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === "ok") {
+            location.reload();
+        }
+    });
+}
+</script>
+
+</body>
+</html>
