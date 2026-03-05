@@ -10,163 +10,195 @@
         html, body {
             height: 100%;
             overflow: hidden;
-            background: #1a1a2e;
-            color: #fff;
+            background: #F4F3F0;
+            color: #2D2D2D;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* Header bar */
+        /* Top bar */
         .top-bar {
             height: 7vh;
-            background: #16213e;
+            background: #FFFFFF;
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 20px;
-            border-bottom: 2px solid #0f3460;
+            border-bottom: 2px solid #E6E4DD;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
         .top-bar .pallet-info {
             font-size: 1.2rem;
             font-weight: bold;
+            color: #2D2D2D;
         }
         .top-bar .pallet-info span {
-            color: #e94560;
+            color: #EA8300;
         }
         .top-bar .actions a {
-            color: #a0a0c0;
+            color: #767676;
             text-decoration: none;
             margin-left: 15px;
             font-size: 0.95rem;
         }
-        .top-bar .actions a:hover { color: #fff; }
+        .top-bar .actions a:hover { color: #2D2D2D; }
 
-        /* Grid de 8 botones: 2 filas x 4 columnas */
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            grid-template-rows: repeat(2, 1fr);
+        /* Workspace para la imagen y botones */
+        .workspace {
             height: 93vh;
-            gap: 4px;
-            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #F4F3F0;
+            position: relative;
         }
 
+        /* Contenedor que abraza la imagen para posicionamiento absoluto */
+        .image-wrapper {
+            position: relative;
+            max-width: 100%;
+            max-height: 100%;
+            display: inline-block;
+        }
+
+        .image-wrapper img {
+            max-height: 85vh;
+            max-width: 100%;
+            display: block;
+            border-radius: 12px;
+            border: 2px solid #E6E4DD;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        /* Estilo general de los botones sobre la imagen */
         .station-btn {
+            position: absolute;
+            transform: translate(-50%, -50%);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            border: 3px solid #0f3460;
-            border-radius: 12px;
+            border: 2px solid #E6E4DD;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
-            background: #16213e;
-            position: relative;
+            background: rgba(255, 255, 255, 0.92);
+            padding: 6px 14px;
+            min-width: 70px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            z-index: 10;
         }
+
         .station-btn:hover {
-            background: #1a2a4a;
-            border-color: #e94560;
-            transform: scale(1.01);
+            background: rgba(255, 255, 255, 1);
+            border-color: #EA8300;
+            transform: translate(-50%, -50%) scale(1.05);
+            box-shadow: 0 4px 14px rgba(234,131,0,0.2);
         }
         .station-btn.has-defect {
-            border-color: #e94560;
-            background: #2a1020;
+            border-color: #EA8300;
+            background: rgba(255, 248, 235, 0.97);
         }
         .station-btn.inspected-ok {
-            border-color: #2ecc71;
-            background: #0a2a15;
+            border-color: #2A9D8F;
+            background: rgba(235, 248, 246, 0.97);
         }
 
         .station-btn .station-name {
-            font-size: 2.2vw;
+            font-size: 1.1rem;
             font-weight: bold;
-            color: #fff;
-        }
-        .station-btn .schedule-name {
-            font-size: 1.3vw;
-            color: #a0a0c0;
-            margin-top: 5px;
-        }
-        .station-btn .defect-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #e94560;
-            color: #fff;
-            font-size: 0.8vw;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: bold;
-        }
-        .station-btn .ok-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #2ecc71;
-            color: #fff;
-            font-size: 0.8vw;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: bold;
+            color: #2D2D2D;
+            letter-spacing: 1px;
         }
 
-        /* Modal overlay */
+        /* Badges de estado */
+        .station-btn .defect-badge, .station-btn .ok-badge {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            color: #fff;
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .station-btn .defect-badge { background: #EA8300; }
+        .station-btn .ok-badge { background: #2A9D8F; }
+
+        /* Coordenadas específicas de cada soldadura (en %) basadas en la imagen */
+        /* Pieza 1 (Izquierda) */
+        #btn1 { top: 33%; left: 10%; }
+        #btn2 { top: 72%; left: 10%; }
+        
+        /* Pieza 2 (Centro-Izquierda) */
+        #btn3 { top: 22%; left: 36%; }
+        #btn4 { top: 76%; left: 34%; }
+        
+        /* Pieza 3 (Centro-Derecha) */
+        #btn5 { top: 27%; left: 56%; }
+        #btn6 { top: 76%; left: 58%; }
+        
+        /* Pieza 4 (Derecha - tiene forma de L invertida) */
+        #btn7 { top: 29%; left: 73%; }
+        #btn8 { top: 75%; left: 95%; }
+
         .modal-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.85);
+            background: rgba(45,45,45,0.5);
+            backdrop-filter: blur(3px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
         }
-        .modal-overlay.active {
-            display: flex;
-        }
+        .modal-overlay.active { display: flex; }
 
         .modal-box {
-            background: #16213e;
-            border: 2px solid #0f3460;
+            background: #FFFFFF;
+            border: 1px solid #E6E4DD;
             border-radius: 16px;
             padding: 30px 40px;
             max-width: 550px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
         }
         .modal-box h2 {
             text-align: center;
             margin-bottom: 5px;
             font-size: 1.5rem;
+            color: #2D2D2D;
+            font-weight: 700;
         }
         .modal-box .modal-subtitle {
             text-align: center;
-            color: #a0a0c0;
+            color: #767676;
             margin-bottom: 20px;
             font-size: 0.95rem;
         }
 
-        .defect-list {
-            list-style: none;
-            padding: 0;
-        }
-        .defect-list li {
-            margin-bottom: 8px;
-        }
+        .defect-list { list-style: none; padding: 0; }
+        .defect-list li { margin-bottom: 8px; }
         .defect-list li button {
             width: 100%;
-            padding: 14px 20px;
-            border: 2px solid #0f3460;
+            padding: 13px 20px;
+            border: 1.5px solid #E6E4DD;
             border-radius: 10px;
-            background: #0a0a23;
-            color: #fff;
+            background: #F4F3F0;
+            color: #2D2D2D;
             font-size: 1.05rem;
             cursor: pointer;
             text-align: left;
             transition: all 0.15s;
+            font-weight: 500;
         }
         .defect-list li button:hover {
-            background: #e94560;
-            border-color: #e94560;
+            background: #EA8300;
+            border-color: #EA8300;
+            color: #fff;
         }
 
         .modal-actions {
@@ -183,34 +215,19 @@
             cursor: pointer;
             font-weight: bold;
         }
-        .btn-ok {
-            background: #2ecc71;
-            color: #fff;
-        }
-        .btn-ok:hover { background: #27ae60; }
-        .btn-cancel {
-            background: #555;
-            color: #fff;
-        }
-        .btn-cancel:hover { background: #777; }
+        .btn-ok { background: #2A9D8F; color: #fff; }
+        .btn-ok:hover { background: #21867a; }
+        .btn-clear { background: #E6E4DD; color: #767676; }
+        .btn-clear:hover { background: #d5d3cc; color: #2D2D2D; }
+        .btn-cancel { background: #E6E4DD; color: #767676; }
+        .btn-cancel:hover { background: #d5d3cc; color: #2D2D2D; }
 
-        /* Finish bar */
-        .finish-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 0;
-            overflow: hidden;
-        }
-
-        /* Toast notification */
         .toast-msg {
             position: fixed;
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            background: #2ecc71;
+            background: #2A9D8F;
             color: #fff;
             padding: 12px 30px;
             border-radius: 12px;
@@ -218,11 +235,9 @@
             font-weight: bold;
             z-index: 2000;
             display: none;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
-        .toast-msg.error {
-            background: #e94560;
-        }
+        .toast-msg.error { background: #EA8300; }
         .toast-msg.show {
             display: block;
             animation: fadeInOut 2.5s ease forwards;
@@ -234,31 +249,29 @@
             100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
         }
 
-        /* Finish button floating */
         .finish-btn-container {
             position: fixed;
             bottom: 12px;
             right: 20px;
             z-index: 500;
         }
-        .finish-btn-container a {
-            background: #e94560;
+        .finish-btn-container button {
+            background: #EA8300;
             color: #fff;
             padding: 10px 25px;
             border-radius: 10px;
-            text-decoration: none;
+            border: none;
             font-weight: bold;
             font-size: 1rem;
+            cursor: pointer;
             transition: background 0.2s;
+            box-shadow: 0 2px 8px rgba(234,131,0,0.25);
         }
-        .finish-btn-container a:hover {
-            background: #c73652;
-        }
+        .finish-btn-container button:hover { background: #C97000; }
     </style>
 </head>
 <body>
 
-<!-- Top bar -->
 <div class="top-bar">
     <div class="pallet-info">
         INSPECCIÓN &mdash; Pallet: <span>{{ pallet_id }}</span>
@@ -269,17 +282,18 @@
     </div>
 </div>
 
-<!-- Grid de 8 soldadoras -->
-<div class="grid-container">
-    {% for btn_id, (estacion, schedule) in button_map.items() %}
-    <div class="station-btn" id="{{ btn_id }}" onclick="openDefectMenu('{{ btn_id }}', '{{ estacion }}', '{{ schedule }}')">
-        <div class="station-name">{{ estacion }}</div>
-        <div class="schedule-name">{{ schedule }}</div>
+<div class="workspace">
+    <div class="image-wrapper">
+        <img src="{{ url_for('static', filename='soldaduras.png') }}" alt="Plano de Soldaduras">
+        
+        {% for btn_id, (estacion, schedule) in button_map.items() %}
+        <div class="station-btn" id="{{ btn_id }}" onclick="openDefectMenu('{{ btn_id }}', '{{ estacion }}', '{{ schedule }}')">
+            <div class="station-name">{{ estacion }}</div>
+            </div>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
 
-<!-- Modal: lista de defectos -->
 <div class="modal-overlay" id="defectModal">
     <div class="modal-box">
         <h2 id="modalTitle">Seleccionar Defecto</h2>
@@ -287,23 +301,22 @@
         <ul class="defect-list">
             {% for defecto in defectos %}
             <li>
-                <button onclick="registerDefect('{{ defecto }}')">{{ defecto }}</button>
+                <button onclick="selectDefect('{{ defecto }}')">{{ defecto }}</button>
             </li>
             {% endfor %}
         </ul>
         <div class="modal-actions">
-            <button class="btn-ok" onclick="markAsOk()">✔ Sin Defecto (OK)</button>
+            <button class="btn-ok" onclick="markAsOk()">&#10004; Sin Defecto (OK)</button>
+            <button class="btn-clear" onclick="clearStation()">&#8635; Limpiar</button>
             <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
         </div>
     </div>
 </div>
 
-<!-- Toast -->
 <div class="toast-msg" id="toastMsg"></div>
 
-<!-- Finish button -->
 <div class="finish-btn-container">
-    <a href="/">FINALIZAR INSPECCIÓN</a>
+    <button onclick="finalizar()">FINALIZAR INSPECCIÓN</button>
 </div>
 
 <script>
@@ -312,12 +325,25 @@
     let currentEstacion = "";
     let currentSchedule = "";
 
+    // Almacén local: { btnId: { defecto, estacion, schedule } }
+    // Si el valor es null significa que el operador lo revisó y no encontró defecto (OK)
+    const pendingDefects = {};
+
     function openDefectMenu(btnId, estacion, schedule) {
         currentBtn = btnId;
         currentEstacion = estacion;
         currentSchedule = schedule;
-        document.getElementById('modalTitle').textContent = 'Seleccionar Defecto';
-        document.getElementById('modalSubtitle').textContent = estacion + ' — ' + schedule;
+
+        const existing = pendingDefects[btnId];
+        if (existing) {
+            document.getElementById('modalTitle').textContent = 'Cambiar Defecto';
+            document.getElementById('modalSubtitle').textContent =
+                estacion + ' — ' + schedule + '  ·  Actual: ' + existing.defecto;
+        } else {
+            document.getElementById('modalTitle').textContent = 'Seleccionar Defecto';
+            document.getElementById('modalSubtitle').textContent = estacion + ' — ' + schedule;
+        }
+
         document.getElementById('defectModal').classList.add('active');
     }
 
@@ -333,41 +359,104 @@
         setTimeout(() => { toast.className = 'toast-msg'; }, 2600);
     }
 
-    function registerDefect(defecto) {
-        if (!currentBtn) return;
+    function updateButtonVisual(btnId) {
+        const btn = document.getElementById(btnId);
+        const entry = pendingDefects[btnId];
 
-        fetch('/registrar_defecto', {
+        // Limpiar clases y badges
+        btn.classList.remove('has-defect', 'inspected-ok');
+        const existingBadge = btn.querySelector('.defect-badge, .ok-badge');
+        if (existingBadge) existingBadge.remove();
+
+        if (entry === null) {
+            // Marcado como OK
+            btn.classList.add('inspected-ok');
+            const badge = document.createElement('div');
+            badge.className = 'ok-badge';
+            badge.textContent = 'OK';
+            btn.appendChild(badge);
+        } else if (entry) {
+            // Tiene defecto
+            btn.classList.add('has-defect');
+            const badge = document.createElement('div');
+            badge.className = 'defect-badge';
+            badge.textContent = entry.defecto;
+            btn.appendChild(badge);
+        }
+    }
+
+    function selectDefect(defecto) {
+        if (!currentBtn) return;
+        pendingDefects[currentBtn] = {
+            defecto: defecto,
+            estacion: currentEstacion,
+            schedule: currentSchedule
+        };
+        updateButtonVisual(currentBtn);
+        showToast(currentEstacion + '/' + currentSchedule + ' → ' + defecto, false);
+        closeModal();
+    }
+
+    function markAsOk() {
+        if (!currentBtn) return;
+        pendingDefects[currentBtn] = null; // null = revisado sin defecto
+        updateButtonVisual(currentBtn);
+        showToast(currentEstacion + '/' + currentSchedule + ' marcada como OK', false);
+        closeModal();
+    }
+
+    function clearStation() {
+        if (!currentBtn) return;
+        delete pendingDefects[currentBtn];
+        updateButtonVisual(currentBtn);
+        showToast(currentEstacion + '/' + currentSchedule + ' restablecida', false);
+        closeModal();
+    }
+
+    // ── Finalizar inspección ──────────────────────────────────────────────────
+    function finalizar() {
+        // Solo enviar los que tienen defecto (los null = OK no se guardan en BD)
+        const defectosAGuardar = Object.entries(pendingDefects)
+            .filter(([, v]) => v !== null)
+            .map(([boton, v]) => ({ boton, defecto: v.defecto }));
+
+        // Construir resumen para confirmación
+        const totalConDefecto = defectosAGuardar.length;
+        const totalOk = Object.values(pendingDefects).filter(v => v === null).length;
+        const totalSinRevisar = 8 - Object.keys(pendingDefects).length;
+
+        let resumen = '';
+        if (totalConDefecto > 0) {
+            resumen += defectosAGuardar.map(d => {
+                const entry = pendingDefects[d.boton];
+                return `• ${entry.estacion}/${entry.schedule}: ${d.defecto}`;
+            }).join('\n');
+            resumen += '\n';
+        }
+        if (totalOk > 0) resumen += `\n✔ ${totalOk} soldadora(s) sin defecto`;
+        if (totalSinRevisar > 0) resumen += `\n⚠ ${totalSinRevisar} soldadora(s) sin revisar (se asumen OK)`;
+
+        const confirmMsg = totalConDefecto === 0
+            ? `No hay defectos registrados.\n${resumen}\n\n¿Finalizar inspección?`
+            : `Defectos a guardar:\n${resumen}\n\n¿Confirmar y guardar?`;
+
+        if (!confirm(confirmMsg)) return;
+
+        if (defectosAGuardar.length === 0) {
+            // Nada que guardar, volver al inicio directo
+            window.location.href = '/';
+            return;
+        }
+
+        fetch('/finalizar_inspeccion', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                boton: currentBtn,
-                pallet_id: palletId,
-                defecto: defecto
-            })
+            body: JSON.stringify({ pallet_id: palletId, defectos: defectosAGuardar })
         })
         .then(r => r.json())
         .then(data => {
             if (data.status === 'ok') {
-                // Marcar botón como con defecto
-                const btn = document.getElementById(currentBtn);
-                btn.classList.remove('inspected-ok');
-                btn.classList.add('has-defect');
-                // Actualizar o agregar badge
-                let badge = btn.querySelector('.defect-badge');
-                if (!badge) {
-                    badge = document.createElement('div');
-                    badge.className = 'defect-badge';
-                    btn.appendChild(badge);
-                }
-                // Contar defectos
-                let count = parseInt(badge.textContent) || 0;
-                badge.textContent = (count + 1) + ' defecto' + ((count + 1) > 1 ? 's' : '');
-                // Remover badge OK si existe
-                let okBadge = btn.querySelector('.ok-badge');
-                if (okBadge) okBadge.remove();
-
-                showToast(data.message, false);
-                closeModal();
+                window.location.href = '/';
             } else {
                 showToast(data.message, true);
             }
@@ -375,29 +464,10 @@
         .catch(() => showToast('Error de conexión', true));
     }
 
-    function markAsOk() {
-        if (!currentBtn) return;
-        const btn = document.getElementById(currentBtn);
-        if (!btn.classList.contains('has-defect')) {
-            btn.classList.add('inspected-ok');
-            let okBadge = btn.querySelector('.ok-badge');
-            if (!okBadge) {
-                okBadge = document.createElement('div');
-                okBadge.className = 'ok-badge';
-                okBadge.textContent = 'OK';
-                btn.appendChild(okBadge);
-            }
-        }
-        showToast(currentEstacion + '/' + currentSchedule + ' marcada como OK', false);
-        closeModal();
-    }
-
-    // Cerrar modal al hacer click fuera
     document.getElementById('defectModal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
     });
 
-    // Cerrar modal con Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeModal();
     });

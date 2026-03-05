@@ -9,20 +9,21 @@
         html, body {
             height: 100%;
             margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         body {
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #1a1a2e;
-            color: #fff;
+            background: #F4F3F0;
+            color: #2D2D2D;
         }
         .card-pallet {
-            background: #16213e;
-            border: 2px solid #0f3460;
+            background: #FFFFFF;
+            border: 2px solid #E6E4DD;
             border-radius: 20px;
             padding: 50px 60px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
             text-align: center;
             max-width: 500px;
             width: 100%;
@@ -30,9 +31,12 @@
         .card-pallet h1 {
             font-size: 2rem;
             margin-bottom: 10px;
+            color: #2D2D2D;
+            font-weight: 700;
+            letter-spacing: 1px;
         }
         .card-pallet p {
-            color: #a0a0c0;
+            color: #767676;
             margin-bottom: 30px;
         }
         .card-pallet input {
@@ -40,33 +44,35 @@
             text-align: center;
             padding: 15px;
             border-radius: 12px;
-            border: 2px solid #0f3460;
-            background: #0a0a23;
-            color: #fff;
+            border: 2px solid #E6E4DD;
+            background: #F4F3F0;
+            color: #2D2D2D;
             width: 100%;
             margin-bottom: 20px;
         }
         .card-pallet input:focus {
             outline: none;
-            border-color: #e94560;
-            box-shadow: 0 0 10px rgba(233,69,96,0.3);
+            border-color: #EA8300;
+            box-shadow: 0 0 10px rgba(234,131,0,0.2);
         }
         .card-pallet button {
             font-size: 1.3rem;
             padding: 14px 40px;
             border-radius: 12px;
             border: none;
-            background: #e94560;
+            background: #EA8300;
             color: #fff;
             cursor: pointer;
             width: 100%;
             transition: background 0.2s;
+            font-weight: 700;
+            letter-spacing: 0.5px;
         }
         .card-pallet button:hover {
-            background: #c73652;
+            background: #C97000;
         }
         .error-msg {
-            color: #e94560;
+            color: #EA8300;
             font-weight: bold;
             margin-bottom: 15px;
         }

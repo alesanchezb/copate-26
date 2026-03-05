@@ -7,32 +7,61 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
         body {
-            background: #1a1a2e;
+            background: #F4F3F0;
+            color: #2D2D2D;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container-fluid h2 {
+            font-weight: 700;
+            color: #2D2D2D;
+            letter-spacing: 0.5px;
+        }
+        .table {
+            background: #FFFFFF;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+        .table thead th {
+            background: #EA8300;
             color: #fff;
+            border-color: #C97000;
+            font-weight: 600;
+            padding: 14px;
         }
-        .table-dark {
-            background: #16213e;
+        .table tbody tr {
+            color: #2D2D2D;
+            background: #FFFFFF;
         }
-        .table-dark th {
-            background: #0f3460;
-            border-color: #0f3460;
+        .table tbody tr:nth-child(even) {
+            background: #F4F3F0;
         }
-        .table-dark td {
-            border-color: #0f3460;
+        .table tbody tr:hover {
+            background: #fff8ed;
+        }
+        .table td, .table th {
+            border-color: #E6E4DD;
+            vertical-align: middle;
+            padding: 12px;
         }
         a.back-link {
-            color: #e94560;
+            color: #EA8300;
             text-decoration: none;
             font-weight: bold;
         }
         a.back-link:hover {
-            color: #fff;
+            color: #C97000;
         }
         .badge-defect {
-            background: #e94560;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 0.9rem;
+            background: #EA8300;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .text-muted {
+            color: #767676 !important;
         }
     </style>
 </head>
@@ -45,7 +74,7 @@
     </div>
 
     {% if registros %}
-    <table class="table table-dark table-bordered text-center">
+    <table class="table table-bordered text-center">
         <thead>
             <tr>
                 <th>ID</th>

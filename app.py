@@ -5,16 +5,20 @@ from datetime import datetime
 app = Flask(__name__)
 DB_PATH = "InspeccionManual.db"
 
-# Mapeo de botones: key = id del botón, value = (estacion, schedule)
+# Mapeo de botones agrupado por Pieza (columna visual en la imagen)
+# Pieza 1 (izquierda):      btn1=arriba, btn2=abajo
+# Pieza 2 (centro-izq):     btn3=arriba, btn4=abajo
+# Pieza 3 (centro-der):     btn5=arriba, btn6=abajo
+# Pieza 4 (derecha):        btn7=arriba, btn8=abajo
 BUTTON_MAP = {
-    "btn1": ("St145", "Sch2"),
-    "btn2": ("St145", "Sch1"),
-    "btn3": ("St155", "Sch2"),
-    "btn4": ("St155", "Sch1"),
-    "btn5": ("St140", "Sch1"),
-    "btn6": ("St140", "Sch2"),
-    "btn7": ("St150", "Sch2"),
-    "btn8": ("St150", "Sch1"),
+    "btn1": ("St145", "Sch2"),   # Pieza 1 - arriba
+    "btn2": ("St140", "Sch1"),   # Pieza 1 - abajo
+    "btn3": ("St145", "Sch1"),   # Pieza 2 - arriba
+    "btn4": ("St140", "Sch2"),   # Pieza 2 - abajo
+    "btn5": ("St155", "Sch2"),   # Pieza 3 - arriba
+    "btn6": ("St150", "Sch2"),   # Pieza 3 - abajo
+    "btn7": ("St155", "Sch1"),   # Pieza 4 - arriba
+    "btn8": ("St150", "Sch1"),   # Pieza 4 - abajo
 }
 
 DEFECTOS = [
@@ -69,34 +73,44 @@ def inspeccion():
     return render_template("inspeccion.html", pallet_id=pallet_id, button_map=BUTTON_MAP, defectos=DEFECTOS)
 
 
-@app.route("/registrar_defecto", methods=["POST"])
-def registrar_defecto():
-    """Registra un defecto en la base de datos."""
+@app.route("/finalizar_inspeccion", methods=["POST"])
+def finalizar_inspeccion():
+    """Guarda todos los defectos de la inspección de una vez al finalizar."""
     data = request.get_json()
-    boton = data.get("boton")
     pallet_id = data.get("pallet_id", "").strip()
-    defecto = data.get("defecto", "").strip()
+    defectos_lista = data.get("defectos", [])  # [{boton, defecto}, ...]
 
-    if boton not in BUTTON_MAP:
-        return jsonify({"status": "error", "message": "Botón inválido"}), 400
     if not pallet_id:
         return jsonify({"status": "error", "message": "Pallet ID requerido"}), 400
-    if defecto not in DEFECTOS:
-        return jsonify({"status": "error", "message": "Defecto inválido"}), 400
+    if not isinstance(defectos_lista, list):
+        return jsonify({"status": "error", "message": "Formato inválido"}), 400
 
-    estacion, schedule = BUTTON_MAP[boton]
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO Inspecciones (timestamp, estacion, schedule, pallet_id, defecto)
-        VALUES (?, ?, ?, ?, ?)
-    """, (timestamp, estacion, schedule, pallet_id, defecto))
+
+    for item in defectos_lista:
+        boton = item.get("boton")
+        defecto = item.get("defecto", "").strip()
+
+        if boton not in BUTTON_MAP:
+            conn.close()
+            return jsonify({"status": "error", "message": f"Botón inválido: {boton}"}), 400
+        if defecto not in DEFECTOS:
+            conn.close()
+            return jsonify({"status": "error", "message": f"Defecto inválido: {defecto}"}), 400
+
+        estacion, schedule = BUTTON_MAP[boton]
+        cursor.execute("""
+            INSERT INTO Inspecciones (timestamp, estacion, schedule, pallet_id, defecto)
+            VALUES (?, ?, ?, ?, ?)
+        """, (timestamp, estacion, schedule, pallet_id, defecto))
+
     conn.commit()
     conn.close()
 
-    return jsonify({"status": "ok", "message": f"Defecto '{defecto}' registrado para {estacion}/{schedule}"})
+    total = len(defectos_lista)
+    return jsonify({"status": "ok", "message": f"{total} defecto(s) guardado(s) correctamente"})
 
 
 @app.route("/historial")
