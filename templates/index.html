@@ -2,76 +2,91 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Inspección Manual</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspección Manual - Pallet ID</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-</head>
-<body class="bg-dark text-white">
-
-<div class="container mt-5">
-
-    <h1 class="text-center mb-5">INSPECCIÓN MANUAL DE PALLETS</h1>
-
-    <table class="table table-dark table-bordered text-center">
-        <thead>
-            <tr>
-                <th>Pallet</th>
-                <th>Total Soldaduras</th>
-                <th>Estado</th>
-                <th>Acción</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for pallet in pallets %}
-            <tr>
-                <td><strong>{{ pallet['pallet_id'] }}</strong></td>
-                <td>{{ pallet['total'] }}</td>
-
-                <td>
-                    {% if pallet['welding_result'] == "Correcto" %}
-                        <span class="text-success font-weight-bold">CORRECTO</span>
-                    {% elif pallet['welding_result'] == "Incorrecto" %}
-                        <span class="text-danger font-weight-bold">INCORRECTO</span>
-                    {% else %}
-                        <span class="text-warning font-weight-bold">SIN REGISTRAR</span>
-                    {% endif %}
-                </td>
-
-                <td>
-                    <button class="btn btn-success btn-lg mr-2"
-                        onclick="setResult('{{ pallet['pallet_id'] }}','Correcto')">
-                        ✔
-                    </button>
-
-                    <button class="btn btn-danger btn-lg"
-                        onclick="setResult('{{ pallet['pallet_id'] }}','Incorrecto')">
-                        ✖
-                    </button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-</div>
-
-<script>
-function setResult(pallet_id, result) {
-    fetch('/set_result', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            pallet_id: pallet_id,
-            result: result
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === "ok") {
-            location.reload();
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
         }
-    });
-}
-</script>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .card-pallet {
+            background: #16213e;
+            border: 2px solid #0f3460;
+            border-radius: 20px;
+            padding: 50px 60px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        .card-pallet h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        .card-pallet p {
+            color: #a0a0c0;
+            margin-bottom: 30px;
+        }
+        .card-pallet input {
+            font-size: 1.5rem;
+            text-align: center;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #0f3460;
+            background: #0a0a23;
+            color: #fff;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .card-pallet input:focus {
+            outline: none;
+            border-color: #e94560;
+            box-shadow: 0 0 10px rgba(233,69,96,0.3);
+        }
+        .card-pallet button {
+            font-size: 1.3rem;
+            padding: 14px 40px;
+            border-radius: 12px;
+            border: none;
+            background: #e94560;
+            color: #fff;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        .card-pallet button:hover {
+            background: #c73652;
+        }
+        .error-msg {
+            color: #e94560;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card-pallet">
+    <h1>INSPECCIÓN MANUAL</h1>
+    <p>Escanea o ingresa el Pallet ID para comenzar la inspección</p>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <form action="/inspeccion" method="GET">
+        <input type="text" name="pallet_id" id="pallet_id" placeholder="Pallet ID" autofocus required>
+        <button type="submit">INICIAR INSPECCIÓN</button>
+    </form>
+</div>
 
 </body>
 </html>

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspección - Pallet {{ pallet_id }}</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: #1a1a2e;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Header bar */
+        .top-bar {
+            height: 7vh;
+            background: #16213e;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 2px solid #0f3460;
+        }
+        .top-bar .pallet-info {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .top-bar .pallet-info span {
+            color: #e94560;
+        }
+        .top-bar .actions a {
+            color: #a0a0c0;
+            text-decoration: none;
+            margin-left: 15px;
+            font-size: 0.95rem;
+        }
+        .top-bar .actions a:hover { color: #fff; }
+
+        /* Grid de 8 botones: 2 filas x 4 columnas */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            height: 93vh;
+            gap: 4px;
+            padding: 4px;
+        }
+
+        .station-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #0f3460;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #16213e;
+            position: relative;
+        }
+        .station-btn:hover {
+            background: #1a2a4a;
+            border-color: #e94560;
+            transform: scale(1.01);
+        }
+        .station-btn.has-defect {
+            border-color: #e94560;
+            background: #2a1020;
+        }
+        .station-btn.inspected-ok {
+            border-color: #2ecc71;
+            background: #0a2a15;
+        }
+
+        .station-btn .station-name {
+            font-size: 2.2vw;
+            font-weight: bold;
+            color: #fff;
+        }
+        .station-btn .schedule-name {
+            font-size: 1.3vw;
+            color: #a0a0c0;
+            margin-top: 5px;
+        }
+        .station-btn .defect-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #e94560;
+            color: #fff;
+            font-size: 0.8vw;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .station-btn .ok-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #2ecc71;
+            color: #fff;
+            font-size: 0.8vw;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        /* Modal overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-box {
+            background: #16213e;
+            border: 2px solid #0f3460;
+            border-radius: 16px;
+            padding: 30px 40px;
+            max-width: 550px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-box h2 {
+            text-align: center;
+            margin-bottom: 5px;
+            font-size: 1.5rem;
+        }
+        .modal-box .modal-subtitle {
+            text-align: center;
+            color: #a0a0c0;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+
+        .defect-list {
+            list-style: none;
+            padding: 0;
+        }
+        .defect-list li {
+            margin-bottom: 8px;
+        }
+        .defect-list li button {
+            width: 100%;
+            padding: 14px 20px;
+            border: 2px solid #0f3460;
+            border-radius: 10px;
+            background: #0a0a23;
+            color: #fff;
+            font-size: 1.05rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.15s;
+        }
+        .defect-list li button:hover {
+            background: #e94560;
+            border-color: #e94560;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-actions button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-ok {
+            background: #2ecc71;
+            color: #fff;
+        }
+        .btn-ok:hover { background: #27ae60; }
+        .btn-cancel {
+            background: #555;
+            color: #fff;
+        }
+        .btn-cancel:hover { background: #777; }
+
+        /* Finish bar */
+        .finish-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0;
+            overflow: hidden;
+        }
+
+        /* Toast notification */
+        .toast-msg {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2ecc71;
+            color: #fff;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            z-index: 2000;
+            display: none;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+        }
+        .toast-msg.error {
+            background: #e94560;
+        }
+        .toast-msg.show {
+            display: block;
+            animation: fadeInOut 2.5s ease forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            75% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+        }
+
+        /* Finish button floating */
+        .finish-btn-container {
+            position: fixed;
+            bottom: 12px;
+            right: 20px;
+            z-index: 500;
+        }
+        .finish-btn-container a {
+            background: #e94560;
+            color: #fff;
+            padding: 10px 25px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+        .finish-btn-container a:hover {
+            background: #c73652;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="top-bar">
+    <div class="pallet-info">
+        INSPECCIÓN &mdash; Pallet: <span>{{ pallet_id }}</span>
+    </div>
+    <div class="actions">
+        <a href="/">&#8592; Cambiar Pallet</a>
+        <a href="/historial">Historial</a>
+    </div>
+</div>
+
+<!-- Grid de 8 soldadoras -->
+<div class="grid-container">
+    {% for btn_id, (estacion, schedule) in button_map.items() %}
+    <div class="station-btn" id="{{ btn_id }}" onclick="openDefectMenu('{{ btn_id }}', '{{ estacion }}', '{{ schedule }}')">
+        <div class="station-name">{{ estacion }}</div>
+        <div class="schedule-name">{{ schedule }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal: lista de defectos -->
+<div class="modal-overlay" id="defectModal">
+    <div class="modal-box">
+        <h2 id="modalTitle">Seleccionar Defecto</h2>
+        <div class="modal-subtitle" id="modalSubtitle">Estación - Schedule</div>
+        <ul class="defect-list">
+            {% for defecto in defectos %}
+            <li>
+                <button onclick="registerDefect('{{ defecto }}')">{{ defecto }}</button>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="modal-actions">
+            <button class="btn-ok" onclick="markAsOk()">✔ Sin Defecto (OK)</button>
+            <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-msg" id="toastMsg"></div>
+
+<!-- Finish button -->
+<div class="finish-btn-container">
+    <a href="/">FINALIZAR INSPECCIÓN</a>
+</div>
+
+<script>
+    const palletId = "{{ pallet_id }}";
+    let currentBtn = null;
+    let currentEstacion = "";
+    let currentSchedule = "";
+
+    function openDefectMenu(btnId, estacion, schedule) {
+        currentBtn = btnId;
+        currentEstacion = estacion;
+        currentSchedule = schedule;
+        document.getElementById('modalTitle').textContent = 'Seleccionar Defecto';
+        document.getElementById('modalSubtitle').textContent = estacion + ' — ' + schedule;
+        document.getElementById('defectModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('defectModal').classList.remove('active');
+        currentBtn = null;
+    }
+
+    function showToast(msg, isError) {
+        const toast = document.getElementById('toastMsg');
+        toast.textContent = msg;
+        toast.className = 'toast-msg show' + (isError ? ' error' : '');
+        setTimeout(() => { toast.className = 'toast-msg'; }, 2600);
+    }
+
+    function registerDefect(defecto) {
+        if (!currentBtn) return;
+
+        fetch('/registrar_defecto', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                boton: currentBtn,
+                pallet_id: palletId,
+                defecto: defecto
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                // Marcar botón como con defecto
+                const btn = document.getElementById(currentBtn);
+                btn.classList.remove('inspected-ok');
+                btn.classList.add('has-defect');
+                // Actualizar o agregar badge
+                let badge = btn.querySelector('.defect-badge');
+                if (!badge) {
+                    badge = document.createElement('div');
+                    badge.className = 'defect-badge';
+                    btn.appendChild(badge);
+                }
+                // Contar defectos
+                let count = parseInt(badge.textContent) || 0;
+                badge.textContent = (count + 1) + ' defecto' + ((count + 1) > 1 ? 's' : '');
+                // Remover badge OK si existe
+                let okBadge = btn.querySelector('.ok-badge');
+                if (okBadge) okBadge.remove();
+
+                showToast(data.message, false);
+                closeModal();
+            } else {
+                showToast(data.message, true);
+            }
+        })
+        .catch(() => showToast('Error de conexión', true));
+    }
+
+    function markAsOk() {
+        if (!currentBtn) return;
+        const btn = document.getElementById(currentBtn);
+        if (!btn.classList.contains('has-defect')) {
+            btn.classList.add('inspected-ok');
+            let okBadge = btn.querySelector('.ok-badge');
+            if (!okBadge) {
+                okBadge = document.createElement('div');
+                okBadge.className = 'ok-badge';
+                okBadge.textContent = 'OK';
+                btn.appendChild(okBadge);
+            }
+        }
+        showToast(currentEstacion + '/' + currentSchedule + ' marcada como OK', false);
+        closeModal();
+    }
+
+    // Cerrar modal al hacer click fuera
+    document.getElementById('defectModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    // Cerrar modal con Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeModal();
+    });
+</script>
+
+</body>
+</html>

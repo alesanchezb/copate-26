@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Inspecciones</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .table-dark {
+            background: #16213e;
+        }
+        .table-dark th {
+            background: #0f3460;
+            border-color: #0f3460;
+        }
+        .table-dark td {
+            border-color: #0f3460;
+        }
+        a.back-link {
+            color: #e94560;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        a.back-link:hover {
+            color: #fff;
+        }
+        .badge-defect {
+            background: #e94560;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid mt-4 px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>HISTORIAL DE INSPECCIONES</h2>
+        <a class="back-link" href="/">&larr; Volver al inicio</a>
+    </div>
+
+    {% if registros %}
+    <table class="table table-dark table-bordered text-center">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Fecha / Hora</th>
+                <th>Estación</th>
+                <th>Schedule</th>
+                <th>Pallet ID</th>
+                <th>Defecto</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in registros %}
+            <tr>
+                <td>{{ r['id'] }}</td>
+                <td>{{ r['timestamp'] }}</td>
+                <td>{{ r['estacion'] }}</td>
+                <td>{{ r['schedule'] }}</td>
+                <td><strong>{{ r['pallet_id'] }}</strong></td>
+                <td><span class="badge-defect">{{ r['defecto'] }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="text-center mt-5">
+        <h4 class="text-muted">No hay registros de inspección aún.</h4>
+    </div>
+    {% endif %}
+</div>
+
+</body>
+</html>
