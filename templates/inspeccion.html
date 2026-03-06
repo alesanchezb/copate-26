@@ -284,7 +284,7 @@
 
 <div class="workspace">
     <div class="image-wrapper">
-        <img src="{{ url_for('static', filename='soldaduras.png') }}" alt="Plano de Soldaduras">
+        <img src="{{ url_for('static', filename='soldaduras.jpg') }}" alt="Plano de Soldaduras">
         
         {% for btn_id, (estacion, schedule) in button_map.items() %}
         <div class="station-btn" id="{{ btn_id }}" onclick="openDefectMenu('{{ btn_id }}', '{{ estacion }}', '{{ schedule }}')">
