@@ -126,6 +126,96 @@
         .station-btn .defect-badge { background: #EA8300; }
         .station-btn .ok-badge { background: #2A9D8F; }
 
+        /* Atajo de teclado en cada botón */
+        .key-hint {
+            position: absolute;
+            bottom: -11px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2D2D2D;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 1px 7px;
+            border-radius: 4px;
+            font-weight: bold;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        /* Indicadores de teclado en la barra y botones */
+        kbd {
+            display: inline-block;
+            background: #2D2D2D;
+            color: #fff;
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 0.75rem;
+            font-family: inherit;
+            font-weight: bold;
+            margin-right: 3px;
+            vertical-align: middle;
+        }
+        .top-bar kbd { opacity: 0.75; }
+
+        /* Modal de confirmación */
+        .confirm-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(45,45,45,0.55);
+            backdrop-filter: blur(3px);
+            z-index: 1100;
+            align-items: center;
+            justify-content: center;
+        }
+        .confirm-overlay.active { display: flex; }
+        .confirm-box {
+            background: #FFFFFF;
+            border: 1px solid #E6E4DD;
+            border-radius: 16px;
+            padding: 30px 40px;
+            max-width: 520px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+        }
+        .confirm-box h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2D2D2D;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .confirm-summary {
+            background: #F4F3F0;
+            border: 1px solid #E6E4DD;
+            border-radius: 10px;
+            padding: 14px 18px;
+            font-size: 0.95rem;
+            color: #2D2D2D;
+            margin-bottom: 20px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .confirm-summary .item-defect { color: #EA8300; font-weight: 600; }
+        .confirm-summary .item-ok    { color: #2A9D8F; font-weight: 600; }
+        .confirm-summary .item-warn  { color: #767676; }
+        .confirm-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .confirm-actions button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-confirm { background: #EA8300; color: #fff; }
+        .btn-confirm:hover { background: #C97000; }
+        .btn-back   { background: #E6E4DD; color: #767676; }
+        .btn-back:hover { background: #d5d3cc; color: #2D2D2D; }
+
         /* Coordenadas específicas de cada soldadura (en %) basadas en la imagen */
         /* Pieza 1 (Izquierda) */
         #btn1 { top: 33%; left: 10%; }
@@ -175,9 +265,10 @@
         }
         .modal-box .modal-subtitle {
             text-align: center;
-            color: #767676;
+            color: #2D2D2D;
             margin-bottom: 20px;
-            font-size: 0.95rem;
+            font-size: 1.25rem;
+            font-weight: 600;
         }
 
         .defect-list { list-style: none; padding: 0; }
@@ -194,10 +285,24 @@
             text-align: left;
             transition: all 0.15s;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .defect-list li button kbd {
+            background: rgba(0,0,0,0.12);
+            color: #2D2D2D;
+            min-width: 22px;
+            text-align: center;
+            flex-shrink: 0;
         }
         .defect-list li button:hover {
             background: #EA8300;
             border-color: #EA8300;
+            color: #fff;
+        }
+        .defect-list li button:hover kbd {
+            background: rgba(255,255,255,0.25);
             color: #fff;
         }
 
@@ -277,8 +382,8 @@
         Inspeccionando: Pallet <span>{{ pallet_id }}</span>
     </div>
     <div class="actions">
-        <a href="/">&#8592; Cambiar Pallet</a>
-        <a href="/historial">Historial</a>
+        <a href="/"><kbd>Esc</kbd> Cambiar Pallet</a>
+        <a href="/historial"><kbd>H</kbd> Historial</a>
     </div>
 </div>
 
@@ -301,14 +406,25 @@
         <ul class="defect-list">
             {% for defecto in defectos %}
             <li>
-                <button onclick="selectDefect('{{ defecto }}')">{{ defecto }}</button>
+                <button onclick="selectDefect('{{ defecto }}')"><kbd>{{ loop.index0 }}</kbd>{{ defecto }}</button>
             </li>
             {% endfor %}
         </ul>
         <div class="modal-actions">
-            <button class="btn-ok" onclick="markAsOk()">&#10004; Sin Defecto (OK)</button>
-            <button class="btn-clear" onclick="clearStation()">&#8635; Limpiar</button>
-            <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+            <button class="btn-clear" onclick="clearStation()"><kbd>L</kbd> Limpiar selección</button>
+            <button class="btn-cancel" onclick="closeModal()"><kbd>Esc</kbd> Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de finalización -->
+<div class="confirm-overlay" id="confirmModal">
+    <div class="confirm-box">
+        <h3>Confirmar Inspección</h3>
+        <div class="confirm-summary" id="confirmSummary"></div>
+        <div class="confirm-actions">
+            <button class="btn-confirm" onclick="confirmarFinalizar()"><kbd style="background:rgba(255,255,255,0.25);color:#fff;">&#8629;</kbd> Confirmar y Guardar</button>
+            <button class="btn-back" onclick="closeConfirmModal()"><kbd>Esc</kbd> Volver</button>
         </div>
     </div>
 </div>
@@ -316,7 +432,7 @@
 <div class="toast-msg" id="toastMsg"></div>
 
 <div class="finish-btn-container">
-    <button onclick="finalizar()">FINALIZAR INSPECCIÓN</button>
+    <button onclick="finalizar()">FINALIZAR INSPECCIÓN &nbsp;<kbd style="background:rgba(255,255,255,0.25);color:#fff;border-radius:4px;padding:1px 6px;font-size:0.8rem;">&#8629;</kbd></button>
 </div>
 
 <script>
@@ -325,9 +441,37 @@
     let currentEstacion = "";
     let currentSchedule = "";
 
+    // Lista de defectos accesible desde JS (0-9)
+    const DEFECTOS = [
+        {% for defecto in defectos %}"{{ defecto }}",
+        {% endfor %}
+    ];
+
+    // Mapa de botones disponible en JS para el teclado
+    const buttonInfo = {
+        {% for btn_id, (estacion, schedule) in button_map.items() %}
+        "{{ btn_id }}": { estacion: "{{ estacion }}", schedule: "{{ schedule }}" },
+        {% endfor %}
+    };
+    const keyToBtn = { '1':'btn1','2':'btn2','3':'btn3','4':'btn4','5':'btn5','6':'btn6','7':'btn7','8':'btn8' };
+
+    // Inyectar indicadores de tecla en cada botón al cargar
+    Object.entries(keyToBtn).forEach(([key, btnId]) => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            const hint = document.createElement('div');
+            hint.className = 'key-hint';
+            hint.textContent = key;
+            btn.appendChild(hint);
+        }
+    });
+
     // Almacén local: { btnId: { defecto, estacion, schedule } }
     // Si el valor es null significa que el operador lo revisó y no encontró defecto (OK)
     const pendingDefects = {};
+
+    // Datos pendientes para confirmar (se llenan al abrir el modal de confirmación)
+    let pendingPayload = null;
 
     function openDefectMenu(btnId, estacion, schedule) {
         currentBtn = btnId;
@@ -413,37 +557,52 @@
         closeModal();
     }
 
-    // ── Finalizar inspección ──────────────────────────────────────────────────
+    // ── Modal de confirmación ─────────────────────────────────────────────────
     function finalizar() {
-        // Solo enviar los que tienen defecto (los null = OK no se guardan en BD)
+        // Solo los que tienen defecto (null = OK, no se guarda en BD)
         const defectosAGuardar = Object.entries(pendingDefects)
             .filter(([, v]) => v !== null)
             .map(([boton, v]) => ({ boton, defecto: v.defecto }));
 
-        // Construir resumen para confirmación
         const totalConDefecto = defectosAGuardar.length;
         const totalOk = Object.values(pendingDefects).filter(v => v === null).length;
         const totalSinRevisar = 8 - Object.keys(pendingDefects).length;
 
-        let resumen = '';
+        // Guardar payload para usarlo al confirmar
+        pendingPayload = defectosAGuardar;
+
+        // Construir resumen visual en el modal
+        const summary = document.getElementById('confirmSummary');
+        let html = '';
         if (totalConDefecto > 0) {
-            resumen += defectosAGuardar.map(d => {
+            html += '<div style="margin-bottom:8px;font-weight:700;">Defectos a registrar:</div>';
+            defectosAGuardar.forEach(d => {
                 const entry = pendingDefects[d.boton];
-                return `• ${entry.estacion}/${entry.schedule}: ${d.defecto}`;
-            }).join('\n');
-            resumen += '\n';
+                html += `<div class="item-defect">&#9679; ${entry.estacion}/${entry.schedule}: ${d.defecto}</div>`;
+            });
         }
-        if (totalOk > 0) resumen += `\n✔ ${totalOk} soldadora(s) sin defecto`;
-        if (totalSinRevisar > 0) resumen += `\n⚠ ${totalSinRevisar} soldadora(s) sin revisar (se asumen OK)`;
+        if (totalConDefecto > 0 && (totalOk > 0 || totalSinRevisar > 0)) html += '<hr style="border-color:#E6E4DD;margin:10px 0;">';
+        if (totalOk > 0)
+            html += `<div class="item-ok">&#10004; ${totalOk} soldadora(s) inspeccionada(s) sin defecto</div>`;
+        if (totalSinRevisar > 0)
+            html += `<div class="item-warn" style="margin-top:4px;">&#9888; ${totalSinRevisar} soldadora(s) sin revisar &mdash; se asumen correctas</div>`;
+        if (totalConDefecto === 0 && totalOk === 0)
+            html += '<div class="item-warn">No se revisó ninguna soldadora.</div>';
 
-        const confirmMsg = totalConDefecto === 0
-            ? `No hay defectos registrados.\n${resumen}\n\n¿Finalizar inspección?`
-            : `Defectos a guardar:\n${resumen}\n\n¿Confirmar y guardar?`;
+        summary.innerHTML = html;
+        document.getElementById('confirmModal').classList.add('active');
+    }
 
-        if (!confirm(confirmMsg)) return;
+    function closeConfirmModal() {
+        document.getElementById('confirmModal').classList.remove('active');
+        pendingPayload = null;
+    }
 
-        if (defectosAGuardar.length === 0) {
-            // Nada que guardar, volver al inicio directo
+    function confirmarFinalizar() {
+        if (!pendingPayload) return;
+
+        if (pendingPayload.length === 0) {
+            // Sin defectos, volver directo
             window.location.href = '/';
             return;
         }
@@ -451,25 +610,61 @@
         fetch('/finalizar_inspeccion', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pallet_id: palletId, defectos: defectosAGuardar })
+            body: JSON.stringify({ pallet_id: palletId, defectos: pendingPayload })
         })
         .then(r => r.json())
         .then(data => {
             if (data.status === 'ok') {
                 window.location.href = '/';
             } else {
+                closeConfirmModal();
                 showToast(data.message, true);
             }
         })
-        .catch(() => showToast('Error de conexión', true));
+        .catch(() => { closeConfirmModal(); showToast('Error de conexión', true); });
     }
 
+    // ── Cerrar modales al hacer click fuera ───────────────────────────────────
     document.getElementById('defectModal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
     });
+    document.getElementById('confirmModal').addEventListener('click', function(e) {
+        if (e.target === this) closeConfirmModal();
+    });
 
+    // ── Control por teclado ───────────────────────────────────────────────────
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeModal();
+        const defectOpen  = document.getElementById('defectModal').classList.contains('active');
+        const confirmOpen = document.getElementById('confirmModal').classList.contains('active');
+
+        // ── Dentro del modal de confirmación ──
+        if (confirmOpen) {
+            if (e.key === 'Enter')  { e.preventDefault(); confirmarFinalizar(); }
+            if (e.key === 'Escape') { closeConfirmModal(); }
+            return;
+        }
+
+        // ── Dentro del modal de defectos ──
+        if (defectOpen) {
+            if (e.key === 'Escape') { closeModal(); return; }
+            if (e.key === 'l' || e.key === 'L') { clearStation(); return; }
+            const idx = parseInt(e.key);
+            if (!isNaN(idx) && idx >= 0 && idx <= 9 && DEFECTOS[idx] !== undefined) {
+                selectDefect(DEFECTOS[idx]);
+            }
+            return; // bloquear el resto de atajos
+        }
+
+        // ── Pantalla de inspección normal ──
+        if (keyToBtn[e.key]) {
+            const btnId = keyToBtn[e.key];
+            const info  = buttonInfo[btnId];
+            if (info) openDefectMenu(btnId, info.estacion, info.schedule);
+            return;
+        }
+        if (e.key === 'Enter')  { e.preventDefault(); finalizar(); return; }
+        if (e.key === 'Escape') { window.location.href = '/'; return; }
+        if (e.key === 'h' || e.key === 'H') { window.location.href = '/historial'; }
     });
 </script>
 

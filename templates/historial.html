@@ -70,7 +70,7 @@
 <div class="container-fluid mt-4 px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>HISTORIAL DE INSPECCIONES</h2>
-        <a class="back-link" href="/">&larr; Volver al inicio</a>
+        <a class="back-link" href="/"><kbd style="background:#2D2D2D;color:#fff;border-radius:4px;padding:1px 6px;font-size:0.75rem;font-weight:bold;margin-right:3px;">Esc</kbd> Volver al inicio</a>
     </div>
 
     {% if registros %}
@@ -105,5 +105,10 @@
     {% endif %}
 </div>
 
+<script>
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') window.location.href = '/';
+    });
+</script>
 </body>
 </html>
