@@ -1,0 +1,17 @@
+# Credenciales — NUNCA subir al repositorio
+.env
+
+# Datos generados por los contenedores en runtime
+postgres_data/*
+!postgres_data/.gitkeep
+
+grafana_data/*
+!grafana_data/.gitkeep
+
+# Entorno virtual de Python (para el simulador local)
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo

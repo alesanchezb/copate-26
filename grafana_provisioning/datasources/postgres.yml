@@ -1,0 +1,15 @@
+apiVersion: 1
+
+datasources:
+  - name: PostgreSQL - Soldadura
+    type: postgres
+    url: db:5432
+    user: ${POSTGRES_USER}
+    database: ${POSTGRES_DB}
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1500
+    isDefault: true
+    editable: true
