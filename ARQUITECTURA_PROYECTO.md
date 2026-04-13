@@ -2,13 +2,13 @@
 
 ## Resumen
 
-Este proyecto simula una celda industrial de soldadura y monta un flujo completo de observabilidad y persistencia:
+Este proyecto simula una celda industrial de soldadura y monta un flujo completo de alertas en tiempo real:
 
 1. `simulator.py` genera eventos de soldadura y los publica por MQTT.
-2. `broker` (Eclipse Mosquitto) recibe esos eventos en `fabrica/linea1/soldadura`.
-3. `cerebro` consume los mensajes, clasifica cada soldadura como `BUENO` o `MALO` y la guarda en PostgreSQL.
-4. `db` almacena el histórico en la tabla `registros_soldadura`.
-5. `grafana` se provisiona con PostgreSQL como fuente de datos para consultar y visualizar registros.
+2. `broker` (Mosquitto) recibe esos eventos en `fabrica/linea1/soldadura`.
+3. `cerebro` consume la telemetria, la normaliza por estacion, genera alertas y expone una UI propia.
+4. `db` persiste estaciones, eventos de soldadura y alertas.
+5. La interfaz web consulta la API del servicio `cerebro` para mostrar dashboard, historial y detalle de anomalias.
 
 ## Componentes
 
@@ -17,27 +17,19 @@ Este proyecto simula una celda industrial de soldadura y monta un flujo completo
 - Archivo: [simulator.py](/home/urias/copa_te/copate-26/simulator.py)
 - Ejecuta fuera de Docker.
 - Publica en `localhost:1883`.
-- Emite 8 soldaduras por pallet con parámetros sintéticos:
-  - `voltaje`
-  - `corriente`
-  - `presion`
-  - `tiempo_ms`
-
-Ejemplo lógico del payload:
-
-```json
-{
-  "pallet_id": "PALLET_1000",
-  "weld_id": 1,
-  "timestamp": 1710000000.0,
-  "params": {
-    "voltaje": 12.1,
-    "corriente": 449.8,
-    "presion": 3.02,
-    "tiempo_ms": 801
-  }
-}
-```
+- Emite 8 soldaduras por pallet.
+- Incluye estos campos operativos:
+  - `event_id`
+  - `line_id`
+  - `station_id`
+  - `source_type`
+  - `pallet_id`
+  - `weld_id`
+  - `timestamp`
+  - `params.voltaje`
+  - `params.corriente`
+  - `params.presion`
+  - `params.tiempo_ms`
 
 ### 2. Broker MQTT
 
@@ -47,37 +39,36 @@ Ejemplo lógico del payload:
 - Puertos:
   - `1883` MQTT
   - `9001` reservado para WebSockets
-- Modo actual:
-  - `allow_anonymous true`
 
-### 3. Cerebro de análisis
+### 3. Servicio de alertas y UI
 
 - Servicio Docker: `cerebro`
-- Código: [brain/main.py](/home/urias/copa_te/copate-26/brain/main.py)
-- Imagen construida desde: [brain/Dockerfile](/home/urias/copa_te/copate-26/brain/Dockerfile)
-- Dependencias embebidas en la imagen:
-  - `paho-mqtt`
-  - `psycopg2-binary`
-  - Python 3.10 slim
+- Código principal: [brain/main.py](/home/urias/copa_te/copate-26/brain/main.py)
+- Configuración y estaciones: [brain/config.py](/home/urias/copa_te/copate-26/brain/config.py)
+- Persistencia y consultas: [brain/repository.py](/home/urias/copa_te/copate-26/brain/repository.py)
+- Interfaz estática:
+  - [dashboard.html](/home/urias/copa_te/copate-26/brain/static/dashboard.html)
+  - [history.html](/home/urias/copa_te/copate-26/brain/static/history.html)
+  - [detail.html](/home/urias/copa_te/copate-26/brain/static/detail.html)
+- Puerto expuesto: `8000`
 
 Responsabilidades:
 
-- Espera 10 segundos al arranque para dar tiempo a `broker` y `db`.
-- Se conecta al broker MQTT dentro de la red Docker usando el host `broker`.
-- Se suscribe al topic `fabrica/linea1/soldadura`.
-- Determina el estado de calidad:
-  - `MALO` si `voltaje > 12.5` o `presion < 2.8`
-  - `BUENO` en cualquier otro caso
-- Inserta en PostgreSQL:
-  - `pallet_id`
-  - `weld_id`
-  - `voltaje`
-  - `presion`
-  - `estado`
-
-Nota:
-
-- `corriente` y `tiempo_ms` se generan en el simulador, pero hoy no se persisten en la base de datos.
+- Espera a que PostgreSQL esté disponible.
+- Se conecta al broker MQTT dentro de Docker.
+- Normaliza la telemetria a una estructura consistente para simulador hoy y PLC despues.
+- Mapea las 8 soldaduras del pallet a 4 estaciones:
+  - `station_1` -> soldaduras 1 y 2
+  - `station_2` -> soldaduras 3 y 4
+  - `station_3` -> soldaduras 5 y 6
+  - `station_4` -> soldaduras 7 y 8
+- Si el payload trae salida del modelo, la usa.
+- Si no existe salida del modelo todavia, aplica un fallback temporal por reglas:
+  - `MALO` si `voltaje > 12.5`
+  - `MALO` si `presion < 2.8`
+  - `BUENO` en otro caso
+- Guarda eventos completos y crea alertas para anomalias.
+- Sirve una UI operativa alineada con el material de `instrucciones/stitch`.
 
 ### 4. Base de datos
 
@@ -88,46 +79,42 @@ Nota:
 - Persistencia:
   - volumen nombrado `postgres_data`
 
-Esquema actual:
+Tablas principales:
 
-- Tabla `registros_soldadura`
-  - `id`
-  - `pallet_id`
-  - `weld_id`
-  - `voltaje`
-  - `presion`
-  - `estado`
-  - `timestamp`
+- `stations`
+- `weld_events`
+- `alerts`
 
-### 5. Grafana
+## Interfaz operativa
 
-- Servicio Docker: `grafana`
-- Imagen: `grafana/grafana-oss:latest`
-- Puerto expuesto: `3000`
-- Persistencia:
-  - volumen nombrado `grafana_data`
-- Provisioning datasource:
-  - [grafana_provisioning/datasources/postgres.yml](/home/urias/copa_te/copate-26/grafana_provisioning/datasources/postgres.yml)
+La interfaz web reemplaza a Grafana como superficie principal del sistema y toma como referencia las vistas de `instrucciones/stitch`:
 
-Comportamiento:
+- Dashboard en tiempo real:
+  - 4 estaciones en serie
+  - logs recientes
+  - metricas rapidas
+  - alerta activa
+- Historial:
+  - filtros por fecha, pallet, estacion y estado
+  - tabla paginada
+  - resumen de resultados
+- Detalle de alerta:
+  - contexto del pallet
+  - linea de tiempo por soldadura
+  - marcadores de anomalia
+  - tabla de telemetria del pallet
 
-- Usa PostgreSQL del servicio `db` como datasource por defecto.
-- Toma credenciales desde variables de entorno.
-
-## Red y flujo de datos
-
-Todos los contenedores usan la red bridge `red_industrial`.
-
-Flujo end-to-end:
+## Flujo de datos
 
 ```text
 simulator.py
   -> MQTT publish a localhost:1883
   -> broker (Mosquitto)
   -> cerebro consume topic fabrica/linea1/soldadura
-  -> clasifica BUENO/MALO
+  -> normaliza evento
+  -> genera estado / alerta
   -> INSERT en PostgreSQL
-  -> Grafana consulta PostgreSQL
+  -> UI propia consulta la API FastAPI
 ```
 
 ## Variables de entorno
@@ -137,9 +124,10 @@ Definidas en [.env.example](/home/urias/copa_te/copate-26/.env.example):
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `POSTGRES_DB`
-- `GRAFANA_ADMIN_PASSWORD`
-
-`docker-compose.yml` depende de esas variables para `db`, `cerebro` y `grafana`.
+- `LINE_ID`
+- `LINE_LABEL`
+- `OPERATOR_NAME`
+- `OPERATOR_LINE_LABEL`
 
 ## Comandos operativos
 
@@ -152,7 +140,13 @@ docker compose up --build -d
 Ver logs:
 
 ```bash
-docker compose logs -f broker cerebro db grafana
+docker compose logs -f broker cerebro db
+```
+
+Abrir interfaz:
+
+```text
+http://localhost:8000
 ```
 
 Ejecutar simulador local:
@@ -161,22 +155,14 @@ Ejecutar simulador local:
 python3 simulator.py
 ```
 
-Detener servicios:
-
-```bash
-docker compose down
-```
-
 ## Observaciones importantes
 
-- No existe un backend HTTP expuesto; el corazón del sistema es mensajería MQTT + procesamiento + persistencia.
-- `cerebro` importa `fastapi` y `uvicorn` en su imagen, pero el código actual no los usa.
-- `depends_on` asegura orden de arranque, pero no healthchecks reales.
-- El `sleep(10)` en `brain/main.py` compensa parcialmente la falta de healthchecks.
-- Para que Grafana vea datos, además de levantar Docker hace falta ejecutar `simulator.py`.
+- El sistema ya no depende de Grafana para la operacion principal.
+- La UI corre dentro del mismo servicio que procesa alertas.
+- El fallback por reglas es solo una compatibilidad temporal mientras se integra el equipo de ML.
+- El contrato de entrada ya esta mas cerca de un futuro adaptador hacia PLC.
 - El puerto `1883` expuesto por Docker permite que el simulador corra desde el host y publique al broker del contenedor.
-- Los datos persistentes de PostgreSQL y Grafana usan volúmenes nombrados de Docker para evitar problemas de permisos del host y mejorar la portabilidad del proyecto entre máquinas.
 
 ## Estado actual del conocimiento
 
-Este archivo resume la arquitectura real observada en el código al 2026-04-11 y sirve como contexto persistente para futuras sesiones.
+Este archivo resume la arquitectura refactorizada observada en el codigo al 2026-04-12 y sirve como contexto persistente para futuras sesiones.

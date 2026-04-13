@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>WeldGuard AI - Historial</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        background: "#f9f9f9",
+                        surface: "#f9f9f9",
+                        "surface-low": "#f3f3f3",
+                        "surface-lowest": "#ffffff",
+                        "surface-high": "#eeeeee",
+                        primary: "#8d4f00",
+                        "primary-container": "#f28c00",
+                        tertiary: "#006495",
+                        "tertiary-container": "#cbe6ff",
+                        error: "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        outline: "#887362",
+                        "outline-variant": "#dbc2ae",
+                        "on-surface": "#1a1c1c",
+                        "on-surface-variant": "#554334"
+                    }
+                }
+            }
+        };
+    </script>
+    <link href="/static/app.css" rel="stylesheet">
+    <script defer src="/static/history.js"></script>
+</head>
+<body class="app-shell bg-background text-on-surface">
+    <div class="flex h-screen overflow-hidden">
+        <aside class="app-sidebar hidden md:flex flex-col px-4 py-6">
+            <div class="mb-8 px-4">
+                <h2 class="font-headline text-lg font-extrabold text-on-surface">WeldGuard AI</h2>
+                <p class="mt-1 text-sm font-medium text-on-surface-variant" id="line-label-sidebar">Control de linea 1</p>
+            </div>
+
+            <nav class="flex-1 space-y-2">
+                <a class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors" href="/">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    Panel
+                </a>
+                <a class="nav-item nav-item-active flex items-center gap-3 px-4 py-3 text-sm font-semibold" href="/history">
+                    <span class="material-symbols-outlined">history</span>
+                    Historial
+                </a>
+            </nav>
+
+            <div class="mt-auto rounded-xl bg-surface-lowest p-4 card-shadow">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container/15 text-sm font-bold text-primary">OP</div>
+                    <div>
+                        <p class="text-sm font-bold text-on-surface" id="operator-name">Operador 01</p>
+                        <p class="text-xs text-on-surface-variant" id="operator-line-label">Linea de soldadura alfa</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex min-w-0 flex-1 flex-col overflow-hidden">
+            <header class="app-topbar flex h-16 items-center justify-between px-6">
+                <div class="flex items-center gap-4">
+                    <h1 class="font-headline text-2xl font-extrabold tracking-tight text-on-surface">Historial</h1>
+                    <div class="h-5 w-px bg-outline-variant"></div>
+                    <span class="text-sm font-semibold text-on-surface-variant">Registros analiticos</span>
+                </div>
+                <div class="status-chip flex items-center gap-2 px-3 py-1.5">
+                    <span class="material-symbols-outlined text-sm text-primary-container">sensors</span>
+                    <span class="text-xs font-bold">Sistema activo</span>
+                </div>
+            </header>
+
+            <div class="custom-scrollbar flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+                <div class="surface-panel rounded-2xl p-6 card-shadow">
+                    <form class="flex flex-wrap items-end gap-5" id="history-filters">
+                        <div class="min-w-[170px] flex-1 space-y-2">
+                            <label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Fecha inicial</label>
+                            <input class="w-full rounded-xl border-none bg-surface-low px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary-container/30" id="date-from" type="date">
+                        </div>
+                        <div class="min-w-[170px] flex-1 space-y-2">
+                            <label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Fecha final</label>
+                            <input class="w-full rounded-xl border-none bg-surface-low px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary-container/30" id="date-to" type="date">
+                        </div>
+                        <div class="min-w-[160px] space-y-2">
+                            <label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Pallet</label>
+                            <input class="w-full rounded-xl border-none bg-surface-low px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary-container/30" id="pallet-filter" placeholder="PALLET_1000" type="text">
+                        </div>
+                        <div class="min-w-[160px] space-y-2">
+                            <label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Estacion</label>
+                            <select class="w-full rounded-xl border-none bg-surface-low px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary-container/30" id="station-filter">
+                                <option value="">Todas las estaciones</option>
+                            </select>
+                        </div>
+                        <div class="min-w-[160px] space-y-2">
+                            <label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Estado</label>
+                            <select class="w-full rounded-xl border-none bg-surface-low px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary-container/30" id="status-filter">
+                                <option value="">Todos los estados</option>
+                                <option value="BUENO">Bueno</option>
+                                <option value="MALO">Malo</option>
+                            </select>
+                        </div>
+                        <button class="soft-button flex h-12 items-center gap-2 rounded-xl px-6 text-xs font-bold uppercase tracking-wider" type="submit">
+                            <span class="material-symbols-outlined text-sm">filter_alt</span>
+                            Aplicar filtros
+                        </button>
+                    </form>
+                </div>
+
+                <div class="surface-panel overflow-hidden rounded-2xl card-shadow">
+                    <table class="w-full border-collapse text-left">
+                        <thead>
+                            <tr class="bg-surface-low text-[10px] uppercase tracking-widest text-on-surface-variant">
+                                <th class="px-6 py-4 font-bold">Fecha y hora</th>
+                                <th class="px-6 py-4 font-bold">Pallet</th>
+                                <th class="px-6 py-4 font-bold">Estacion</th>
+                                <th class="px-6 py-4 text-right font-bold">Voltaje</th>
+                                <th class="px-6 py-4 text-right font-bold">Presion</th>
+                                <th class="px-6 py-4 text-center font-bold">Estado</th>
+                                <th class="px-6 py-4 text-right font-bold">Accion</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body"></tbody>
+                    </table>
+                    <div class="flex items-center justify-between bg-surface-low px-6 py-4">
+                        <p class="text-[11px] font-semibold text-on-surface-variant" id="pagination-summary">Mostrando 0 registros</p>
+                        <div class="flex items-center gap-2">
+                            <button class="rounded-xl bg-surface-lowest p-2 text-on-surface-variant transition-colors hover:text-primary disabled:opacity-40" id="prev-page" type="button">
+                                <span class="material-symbols-outlined">chevron_left</span>
+                            </button>
+                            <button class="rounded-xl bg-surface-lowest px-4 py-2 text-xs font-bold text-on-surface" id="page-indicator" type="button">1</button>
+                            <button class="rounded-xl bg-surface-lowest p-2 text-on-surface-variant transition-colors hover:text-primary disabled:opacity-40" id="next-page" type="button">
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                    <div class="surface-panel rounded-2xl p-5 card-shadow">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Total analizado</p>
+                        <p class="mt-2 font-headline text-3xl font-extrabold" id="summary-total">0</p>
+                    </div>
+                    <div class="surface-panel rounded-2xl p-5 card-shadow">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Tasa correcta</p>
+                        <p class="mt-2 font-headline text-3xl font-extrabold text-tertiary" id="summary-success">0%</p>
+                    </div>
+                    <div class="surface-panel rounded-2xl p-5 card-shadow">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Errores</p>
+                        <p class="mt-2 font-headline text-3xl font-extrabold text-primary-container" id="summary-errors">0</p>
+                    </div>
+                    <div class="surface-panel rounded-2xl p-5 card-shadow">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Linea activa</p>
+                        <p class="mt-2 font-headline text-3xl font-extrabold" id="summary-line">CONTROL</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

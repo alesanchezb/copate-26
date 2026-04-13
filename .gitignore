@@ -5,9 +5,6 @@
 postgres_data/*
 !postgres_data/.gitkeep
 
-grafana_data/*
-!grafana_data/.gitkeep
-
 # Entorno virtual de Python (para el simulador local)
 .venv/
 

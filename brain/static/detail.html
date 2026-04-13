@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>WeldGuard AI - Detalle de alerta</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        background: "#f9f9f9",
+                        surface: "#f9f9f9",
+                        "surface-low": "#f3f3f3",
+                        "surface-lowest": "#ffffff",
+                        "surface-high": "#eeeeee",
+                        primary: "#8d4f00",
+                        "primary-container": "#f28c00",
+                        tertiary: "#006495",
+                        "tertiary-container": "#cbe6ff",
+                        error: "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        outline: "#887362",
+                        "outline-variant": "#dbc2ae",
+                        "on-surface": "#1a1c1c",
+                        "on-surface-variant": "#554334"
+                    }
+                }
+            }
+        };
+    </script>
+    <link href="/static/app.css" rel="stylesheet">
+    <script defer src="/static/detail.js"></script>
+</head>
+<body class="app-shell bg-background text-on-surface">
+    <div class="flex h-screen overflow-hidden">
+        <aside class="app-sidebar hidden md:flex flex-col px-4 py-6">
+            <div class="mb-8 px-4">
+                <h2 class="font-headline text-lg font-extrabold text-on-surface">WeldGuard AI</h2>
+                <p class="mt-1 text-sm font-medium text-on-surface-variant" id="line-label-sidebar">Control de linea 1</p>
+            </div>
+
+            <nav class="flex-1 space-y-2">
+                <a class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors" href="/">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    Panel
+                </a>
+                <a class="nav-item nav-item-active flex items-center gap-3 px-4 py-3 text-sm font-semibold" href="/history">
+                    <span class="material-symbols-outlined">history</span>
+                    Historial
+                </a>
+            </nav>
+
+            <div class="mt-auto rounded-xl bg-surface-lowest p-4 card-shadow">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container/15 text-sm font-bold text-primary">OP</div>
+                    <div>
+                        <p class="text-sm font-bold text-on-surface" id="operator-name">Operador 01</p>
+                        <p class="text-xs text-on-surface-variant" id="operator-line-label">Linea de soldadura alfa</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex min-w-0 flex-1 flex-col overflow-hidden">
+            <header class="app-topbar flex h-16 items-center justify-between px-6">
+                <div class="flex items-center gap-4">
+                    <a class="flex items-center gap-2 rounded-xl bg-surface-low px-4 py-2 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-high" href="/history">
+                        <span class="material-symbols-outlined text-lg">arrow_back</span>
+                        Volver al historial
+                    </a>
+                    <div class="h-5 w-px bg-outline-variant"></div>
+                    <span class="font-headline text-2xl font-extrabold tracking-tight text-on-surface">Detalle de alerta</span>
+                </div>
+                <div class="status-chip flex items-center gap-2 px-3 py-1.5">
+                    <span class="material-symbols-outlined text-sm text-primary-container">sensors</span>
+                    <span class="text-xs font-bold">Sistema activo</span>
+                </div>
+            </header>
+
+            <main class="custom-scrollbar flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+                <section class="grid grid-cols-1 gap-6 xl:grid-cols-12 xl:items-start">
+                    <div class="xl:col-span-8 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <span class="rounded-full bg-primary-container px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white">Anomalia detectada</span>
+                            <span class="text-xs font-semibold text-on-surface-variant" id="detail-alert-id">Alerta</span>
+                        </div>
+                        <h1 class="font-headline text-4xl font-extrabold tracking-tight" id="detail-title">Anomalia detectada</h1>
+                        <p class="max-w-3xl text-base text-on-surface-variant" id="detail-message"></p>
+                    </div>
+                    <div class="surface-panel rounded-2xl p-5 card-shadow xl:col-span-4">
+                        <div class="grid grid-cols-2 gap-5">
+                            <div>
+                                <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Pallet</p>
+                                <p class="mt-1 font-headline text-xl font-extrabold" id="detail-pallet">-</p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Momento</p>
+                                <p class="mt-1 text-sm font-semibold text-primary" id="detail-timestamp">-</p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Duracion</p>
+                                <p class="mt-1 font-headline text-xl font-extrabold" id="detail-duration">-</p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Confianza</p>
+                                <p class="mt-1 font-headline text-xl font-extrabold text-primary-container" id="detail-confidence">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="surface-panel chart-grid relative flex h-[420px] flex-col overflow-hidden rounded-2xl card-shadow">
+                    <div class="flex items-center justify-between px-6 py-5">
+                        <div>
+                            <h2 class="font-headline text-xl font-extrabold">Firma de telemetria</h2>
+                            <p class="mt-1 text-sm text-on-surface-variant">Voltaje por soldadura con marcadores de anomalia.</p>
+                        </div>
+                        <div class="flex items-center gap-5">
+                            <div class="flex items-center gap-2">
+                                <div class="h-3 w-3 rounded-full bg-primary-container"></div>
+                                <span class="text-xs font-semibold text-on-surface">Voltaje</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="h-3 w-3 rounded-full bg-tertiary"></div>
+                                <span class="text-xs font-semibold text-on-surface">Referencia</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative flex-1 overflow-hidden px-10 pb-10 pt-2">
+                        <svg class="h-full w-full" id="timeline-svg" preserveAspectRatio="none" viewBox="0 0 1000 300"></svg>
+                        <div class="absolute inset-y-10 left-3 flex flex-col justify-between text-[10px] font-bold text-on-surface-variant" id="y-axis-labels"></div>
+                    </div>
+                </section>
+
+                <section class="surface-panel overflow-hidden rounded-2xl card-shadow">
+                    <div class="flex items-center justify-between px-6 py-5">
+                        <div>
+                            <h2 class="font-headline text-xl font-extrabold">Ventana de telemetria del pallet</h2>
+                            <p class="mt-1 text-sm text-on-surface-variant">Secuencia completa de las soldaduras asociadas a esta alerta.</p>
+                        </div>
+                        <a class="text-[11px] font-bold uppercase tracking-wider text-primary hover:text-primary-container transition-colors" href="/history">Volver al historial</a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse text-left">
+                            <thead class="bg-surface-low text-[10px] uppercase tracking-widest text-on-surface-variant">
+                                <tr>
+                                    <th class="px-6 py-4 font-bold">Soldadura</th>
+                                    <th class="px-6 py-4 font-bold">Hora</th>
+                                    <th class="px-6 py-4 font-bold">Voltaje</th>
+                                    <th class="px-6 py-4 font-bold">Corriente</th>
+                                    <th class="px-6 py-4 font-bold">Presion</th>
+                                    <th class="px-6 py-4 font-bold">Tiempo</th>
+                                    <th class="px-6 py-4 font-bold">Puntaje</th>
+                                    <th class="px-6 py-4 font-bold">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm" id="telemetry-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </main>
+    </div>
+</body>
+</html>

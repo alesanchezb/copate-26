@@ -18,10 +18,16 @@ services:
       - broker              # No arranca hasta que el broker esté listo
       - db                  # Tampoco arranca hasta que Postgres esté listo
     environment:
-      - POSTGRES_HOST=db
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      POSTGRES_HOST: db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      LINE_ID: ${LINE_ID:-linea1}
+      LINE_LABEL: ${LINE_LABEL:-Control de linea 1}
+      OPERATOR_NAME: ${OPERATOR_NAME:-Operador 01}
+      OPERATOR_LINE_LABEL: ${OPERATOR_LINE_LABEL:-Linea de soldadura alfa}
+    ports:
+      - "8000:8000"
     networks:
       - red_industrial
 
@@ -41,27 +47,9 @@ services:
       - ./db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - red_industrial
-  
-  grafana:
-    image: grafana/grafana-oss:latest
-    container_name: grafana_monitor
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana_provisioning:/etc/grafana/provisioning
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-    networks:
-      - red_industrial
-
 networks:
   red_industrial:
     driver: bridge
 
 volumes:
   postgres_data:
-  grafana_data:
