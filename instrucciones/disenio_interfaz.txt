@@ -1,0 +1,125 @@
+Technical Implementation Prompt: WeldGuard AI Monitoring System
+
+Role
+
+You are an expert Full-Stack Developer specializing in industrial IoT, real-time data visualization, and modern UI frameworks (React/Next.js, Tailwind CSS).
+
+Project Overview
+
+Implement a real-time monitoring dashboard for an industrial welding cell. The system must process MQTT telemetry, run anomaly detection (ML model placeholder), persist data in PostgreSQL, and provide a high-fidelity interface based on the provided design mockups.
+
+Architecture Context
+
+The system follows a microservices pattern:
+
+
+
+
+
+Simulator: Generates welding events (voltage, current, pressure, time) via MQTT.
+
+
+
+Broker (Mosquitto): Handles message distribution.
+
+
+
+Brain (Analysis Engine): Consumes MQTT, determines "BUENO/MALO" status, and saves to PostgreSQL.
+
+
+
+Database (PostgreSQL): Stores historical welding records.
+
+
+
+Frontend (To be implemented): A real-time React-based dashboard.
+
+UI Requirements & Screens
+
+1. Main Dashboard (HUD)
+
+
+
+
+
+Top HUD Section: A serial representation of 4 welding stations. 
+
+
+
+Visual Feedback: Stations must change color/state immediately when an anomaly is detected (e.g., Station 2 turns red with an "Emergency Halt" option).
+
+
+
+Recent Logs: A live-updating table showing the latest 10-15 welding records.
+
+
+
+Stats Panel: Real-time throughput, success rate, and anomaly counts.
+
+2. Anomaly Detail & Timeline
+
+
+
+
+
+Time-Series Graph: Display telemetry (Voltage, Current, etc.).
+
+
+
+ML Markers: Overlay vertical lines on the chart at the exact timestamps where the ML model detected an anomaly.
+
+
+
+Raw Telemetry Table: A high-resolution breakdown of the specific window where the error occurred.
+
+3. Historical Records
+
+
+
+
+
+Filtering: Search and filter by Pallet ID, Station, Date Range, and Status.
+
+
+
+Pagination: Support for browsing through thousands of records.
+
+Design Specifications (Visual Style)
+
+
+
+
+
+Theme: High-contrast Industrial Dark Mode.
+
+
+
+Colors: Deep blacks/greys (#0E0E0E, #131313), primary blue accents (#A5C8FF), and semantic status colors (Green for BUENO, Red/Amber for MALO/Warning).
+
+
+
+Typography: Space Grotesk for headings and technical readouts; Inter for UI labels.
+
+
+
+Components: Use Tailwind CSS. Follow the layout provided in the reference screens ({{DATA:SCREEN:SCREEN_4}}, {{DATA:SCREEN:SCREEN_8}}, {{DATA:SCREEN:SCREEN_7}}).
+
+Technical Implementation Notes
+
+
+
+
+
+Use WebSockets or MQTT-over-WebSockets for real-time dashboard updates to avoid polling.
+
+
+
+Ensure the charting library (e.g., Chart.js, Recharts, or ApexCharts) can handle real-time streaming data efficiently.
+
+
+
+The PostgreSQL schema must be optimized for time-series queries.
+
+Deliverable
+
+Provide a functional frontend structure that connects to the existing MQTT/PostgreSQL backend, faithfully replicating the provided designs.

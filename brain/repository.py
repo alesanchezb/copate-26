@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import threading
+import time
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
-import time
 
 import psycopg2
 from psycopg2.extras import Json, RealDictCursor
@@ -15,19 +17,55 @@ from config import (
     OPERATOR_LINE_LABEL,
     OPERATOR_NAME,
     STATIONS,
+    normalize_schedule,
     station_by_code,
+    station_by_real_station,
     station_for_weld_id,
+    weld_id_for_real_station,
 )
+from model import predict
 
 
+HISTORY_COUNT_CAP = 5000
+
+_pool: Any | None = None
+_pool_lock = threading.Lock()
+
+
+def _build_pool() -> Any:
+    from psycopg2.pool import ThreadedConnectionPool
+
+    return ThreadedConnectionPool(minconn=1, maxconn=10, **DB_CONFIG)
+
+
+def _get_pool() -> Any:
+    global _pool
+    if _pool is None:
+        with _pool_lock:
+            if _pool is None:
+                _pool = _build_pool()
+    return _pool
+
+
+@contextmanager
 def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    pool = _get_pool()
+    conn = pool.getconn()
+    try:
+        yield conn
+    finally:
+        try:
+            if not conn.closed:
+                conn.rollback()
+        except Exception:
+            pass
+        pool.putconn(conn)
 
 
 def wait_for_database(max_attempts: int = 30, sleep_seconds: int = 2) -> None:
     for attempt in range(1, max_attempts + 1):
         try:
-            conn = get_connection()
+            conn = psycopg2.connect(**DB_CONFIG)
             conn.close()
             return
         except Exception as exc:
@@ -39,6 +77,14 @@ def wait_for_database(max_attempts: int = 30, sleep_seconds: int = 2) -> None:
 
 
 def ensure_schema() -> None:
+    """Three-phase migration so an old `postgres_data` volume can be upgraded in place.
+
+    Step 1 creates tables if missing using their canonical column set.
+    Step 2 adds columns that older deployments may be missing.
+    Step 3 creates indexes — this MUST run after step 2 because some indexes
+    reference newly added columns (pallet_run_id) that would not exist yet on
+    an old volume, aborting the whole transaction.
+    """
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -59,10 +105,20 @@ def ensure_schema() -> None:
                     line_id           VARCHAR(50)  NOT NULL,
                     station_code      VARCHAR(50)  NOT NULL REFERENCES stations(station_code),
                     pallet_id         VARCHAR(50)  NOT NULL,
+                    pallet_run_id     VARCHAR(120),
                     weld_id           INTEGER      NOT NULL,
                     source_type       VARCHAR(30)  NOT NULL,
                     source_timestamp  TIMESTAMPTZ  NOT NULL,
                     received_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+                    distancia         NUMERIC(8, 3),
+                    fuerza            NUMERIC(8, 2),
+                    ampers            NUMERIC(8, 2),
+                    volts             NUMERIC(8, 2),
+                    watts             NUMERIC(8, 2),
+                    real_station      VARCHAR(50),
+                    schedule          VARCHAR(10),
+                    plc_ip            VARCHAR(50),
+                    electrode_count   VARCHAR(50),
                     voltaje           NUMERIC(6, 2) NOT NULL,
                     corriente         NUMERIC(8, 2),
                     presion           NUMERIC(6, 2) NOT NULL,
@@ -82,6 +138,7 @@ def ensure_schema() -> None:
                     line_id        VARCHAR(50)  NOT NULL,
                     station_code   VARCHAR(50)  NOT NULL REFERENCES stations(station_code),
                     pallet_id      VARCHAR(50)  NOT NULL,
+                    pallet_run_id  VARCHAR(120),
                     weld_id        INTEGER      NOT NULL,
                     status         VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
                     title          VARCHAR(200) NOT NULL,
@@ -89,16 +146,39 @@ def ensure_schema() -> None:
                     created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
                     resolved_at    TIMESTAMPTZ
                 );
-
+                """
+            )
+            cur.execute(
+                """
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS pallet_run_id VARCHAR(120);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS distancia NUMERIC(8, 3);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS fuerza NUMERIC(8, 2);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS ampers NUMERIC(8, 2);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS volts NUMERIC(8, 2);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS watts NUMERIC(8, 2);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS real_station VARCHAR(50);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS schedule VARCHAR(10);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS plc_ip VARCHAR(50);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS electrode_count VARCHAR(50);
+                ALTER TABLE alerts ADD COLUMN IF NOT EXISTS pallet_run_id VARCHAR(120);
+                """
+            )
+            cur.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_weld_events_station_time
                     ON weld_events (station_code, source_timestamp DESC);
-
+                CREATE INDEX IF NOT EXISTS idx_weld_events_line_time
+                    ON weld_events (line_id, source_timestamp DESC);
+                CREATE INDEX IF NOT EXISTS idx_weld_events_line_status_time
+                    ON weld_events (line_id, status, source_timestamp DESC);
+                CREATE INDEX IF NOT EXISTS idx_weld_events_line_station_time
+                    ON weld_events (line_id, station_code, source_timestamp DESC);
                 CREATE INDEX IF NOT EXISTS idx_weld_events_pallet
                     ON weld_events (pallet_id, weld_id);
-
+                CREATE INDEX IF NOT EXISTS idx_weld_events_pallet_run
+                    ON weld_events (pallet_run_id, weld_id);
                 CREATE INDEX IF NOT EXISTS idx_weld_events_status
                     ON weld_events (status, source_timestamp DESC);
-
                 CREATE INDEX IF NOT EXISTS idx_alerts_status
                     ON alerts (status, created_at DESC);
                 """
@@ -160,10 +240,25 @@ def parse_event_timestamp(raw_value: Any) -> datetime:
     raise ValueError(f"Timestamp no soportado: {raw_value!r}")
 
 
+def number_or_none(raw_value: Any) -> float | None:
+    if raw_value is None or raw_value == "":
+        return None
+    return float(raw_value)
+
+
 def normalize_payload(payload: dict[str, Any]) -> dict[str, Any]:
     params = payload.get("params", {})
-    weld_id = int(payload["weld_id"])
-    station = station_by_code(payload.get("station_id", "")) or station_for_weld_id(weld_id)
+    plc = payload.get("plc") or {}
+    real_station = payload.get("real_station") or plc.get("real_station")
+    schedule = normalize_schedule(payload.get("schedule") or plc.get("schedule"))
+
+    derived_weld_id = weld_id_for_real_station(real_station, schedule)
+    weld_id = int(payload.get("weld_id") or derived_weld_id)
+    station = (
+        station_by_code(payload.get("station_id", ""))
+        or station_by_real_station(real_station)
+        or station_for_weld_id(weld_id)
+    )
     timestamp = parse_event_timestamp(payload.get("timestamp"))
 
     ml_result = (
@@ -183,25 +278,55 @@ def normalize_payload(payload: dict[str, Any]) -> dict[str, Any]:
             "reason": payload.get("detection_reason"),
         }
 
-    voltaje = float(params.get("voltaje", 0))
-    presion = float(params.get("presion", 0))
-    corriente = params.get("corriente")
-    tiempo_ms = params.get("tiempo_ms")
+    distancia = number_or_none(params.get("distancia"))
+    fuerza = number_or_none(params.get("fuerza"))
+    ampers = number_or_none(params.get("ampers"))
+    volts = number_or_none(params.get("volts"))
+    watts = number_or_none(params.get("watts"))
 
-    event_id = payload.get("event_id") or f"{payload['pallet_id']}-{weld_id}-{int(timestamp.timestamp() * 1000)}"
+    voltaje = number_or_none(params.get("voltaje"))
+    corriente = number_or_none(params.get("corriente"))
+    presion = number_or_none(params.get("presion"))
+    tiempo_ms = number_or_none(params.get("tiempo_ms"))
+
+    if voltaje is None:
+        voltaje = volts if volts is not None else 0
+    if corriente is None:
+        corriente = ampers
+    if presion is None:
+        presion = fuerza if fuerza is not None else 0
+
+    pallet_id = str(payload["pallet_id"])
+    pallet_run_id = str(payload.get("pallet_run_id") or pallet_id)
+    event_id = payload.get("event_id") or f"{pallet_run_id}-{weld_id}-{int(timestamp.timestamp() * 1000)}"
+    electrode_count = (
+        plc.get("electrode_count")
+        if plc.get("electrode_count") is not None
+        else payload.get("electrode_count")
+    )
 
     normalized = {
         "event_id": str(event_id),
         "line_id": payload.get("line_id", LINE_ID),
         "station_code": station.code,
-        "pallet_id": payload["pallet_id"],
+        "pallet_id": pallet_id,
+        "pallet_run_id": pallet_run_id,
         "weld_id": weld_id,
         "source_type": payload.get("source_type", "simulator"),
         "source_timestamp": timestamp,
+        "distancia": round(distancia, 3) if distancia is not None else None,
+        "fuerza": round(fuerza, 2) if fuerza is not None else None,
+        "ampers": round(ampers, 2) if ampers is not None else None,
+        "volts": round(volts, 2) if volts is not None else None,
+        "watts": round(watts, 2) if watts is not None else None,
+        "real_station": str(real_station) if real_station is not None else None,
+        "schedule": schedule,
+        "plc_ip": plc.get("plc_ip") or payload.get("plc_ip"),
+        "electrode_count": str(electrode_count) if electrode_count is not None else None,
         "voltaje": round(voltaje, 2),
-        "corriente": round(float(corriente), 2) if corriente is not None else None,
+        "corriente": round(corriente, 2) if corriente is not None else None,
         "presion": round(presion, 2),
-        "tiempo_ms": round(float(tiempo_ms), 2) if tiempo_ms is not None else None,
+        "tiempo_ms": round(tiempo_ms, 2) if tiempo_ms is not None else None,
         "ml_result": ml_result,
         "raw_payload": payload,
     }
@@ -210,27 +335,18 @@ def normalize_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
 def evaluate_detection(event: dict[str, Any]) -> dict[str, Any]:
     ml_result = event.get("ml_result") or {}
-    detection_source = ml_result.get("source") or "rule_fallback"
+    model_result = ml_result if "is_anomaly" in ml_result else predict(event)
 
-    if "is_anomaly" in ml_result:
-        is_anomaly = bool(ml_result.get("is_anomaly"))
-        anomaly_score = float(ml_result.get("score") or (0.98 if is_anomaly else 0.05))
-        confidence = float(ml_result.get("confidence") or anomaly_score)
-        detection_reason = ml_result.get("reason") or "Salida del modelo de deteccion"
+    if model_result and "is_anomaly" in model_result:
+        is_anomaly = bool(model_result.get("is_anomaly"))
+        anomaly_score = float(model_result.get("score") or (0.98 if is_anomaly else 0.05))
+        confidence = float(model_result.get("confidence") or anomaly_score)
+        detection_source = model_result.get("source") or "ml_model"
+        detection_reason = model_result.get("reason") or "Salida del modelo de deteccion"
     else:
-        voltage_component = max((event["voltaje"] - 12.5) / 1.5, 0)
-        pressure_component = max((2.8 - event["presion"]) / 0.8, 0)
-        anomaly_score = min(max(voltage_component, pressure_component), 0.99)
-        is_anomaly = anomaly_score > 0
+        detection_source = "rule_fallback"
+        anomaly_score, is_anomaly, detection_reason = evaluate_rule_fallback(event)
         confidence = max(0.95 if is_anomaly else 0.08, min(anomaly_score, 0.99))
-
-        reasons = []
-        if event["voltaje"] > 12.5:
-            reasons.append(f"Voltaje alto ({event['voltaje']} V)")
-        if event["presion"] < 2.8:
-            reasons.append(f"Presion baja ({event['presion']} bar)")
-
-        detection_reason = " / ".join(reasons) if reasons else "Operacion nominal"
 
     event["is_anomaly"] = is_anomaly
     event["status"] = "MALO" if is_anomaly else "BUENO"
@@ -239,6 +355,42 @@ def evaluate_detection(event: dict[str, Any]) -> dict[str, Any]:
     event["detection_source"] = detection_source
     event["detection_reason"] = detection_reason
     return event
+
+
+PLC_RULE_FALLBACK_THRESHOLD = 0.5
+
+
+def evaluate_rule_fallback(event: dict[str, Any]) -> tuple[float, bool, str]:
+    reasons = []
+
+    if event.get("ampers") is not None:
+        amperage = float(event["ampers"])
+        volts = float(event["volts"] or 0)
+        # Anchor the rule on values that are clearly out of band for the historical
+        # busbar dataset: amperage above ~13.5 or voltage below ~1.8 V. The temporary
+        # rule must stay conservative until the real ML model lands; otherwise it
+        # floods the alerts table and ruins dashboard latency.
+        amperage_component = max((amperage - 13.5) / 1.5, 0)
+        low_voltage_component = max((1.8 - volts) / 0.8, 0)
+        anomaly_score = min(max(amperage_component, low_voltage_component), 0.99)
+        is_anomaly = anomaly_score >= PLC_RULE_FALLBACK_THRESHOLD
+
+        if is_anomaly and amperage > 13.5:
+            reasons.append(f"Amperaje alto ({amperage:.2f})")
+        if is_anomaly and volts < 1.8:
+            reasons.append(f"Voltaje bajo ({volts:.2f} V)")
+    else:
+        voltage_component = max((event["voltaje"] - 12.5) / 1.5, 0)
+        pressure_component = max((2.8 - event["presion"]) / 0.8, 0)
+        anomaly_score = min(max(voltage_component, pressure_component), 0.99)
+        is_anomaly = anomaly_score > 0
+
+        if event["voltaje"] > 12.5:
+            reasons.append(f"Voltaje alto ({event['voltaje']} V)")
+        if event["presion"] < 2.8:
+            reasons.append(f"Presion baja ({event['presion']} bar)")
+
+    return anomaly_score, is_anomaly, " / ".join(reasons) if reasons else "Operacion nominal"
 
 
 def persist_event(event: dict[str, Any]) -> bool:
@@ -255,9 +407,19 @@ def persist_event(event: dict[str, Any]) -> bool:
                     line_id,
                     station_code,
                     pallet_id,
+                    pallet_run_id,
                     weld_id,
                     source_type,
                     source_timestamp,
+                    distancia,
+                    fuerza,
+                    ampers,
+                    volts,
+                    watts,
+                    real_station,
+                    schedule,
+                    plc_ip,
+                    electrode_count,
                     voltaje,
                     corriente,
                     presion,
@@ -275,9 +437,19 @@ def persist_event(event: dict[str, Any]) -> bool:
                     %(line_id)s,
                     %(station_code)s,
                     %(pallet_id)s,
+                    %(pallet_run_id)s,
                     %(weld_id)s,
                     %(source_type)s,
                     %(source_timestamp)s,
+                    %(distancia)s,
+                    %(fuerza)s,
+                    %(ampers)s,
+                    %(volts)s,
+                    %(watts)s,
+                    %(real_station)s,
+                    %(schedule)s,
+                    %(plc_ip)s,
+                    %(electrode_count)s,
                     %(voltaje)s,
                     %(corriente)s,
                     %(presion)s,
@@ -310,11 +482,12 @@ def persist_event(event: dict[str, Any]) -> bool:
                         line_id,
                         station_code,
                         pallet_id,
+                        pallet_run_id,
                         weld_id,
                         title,
                         message
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (event_id) DO NOTHING
                     """,
                     (
@@ -323,6 +496,7 @@ def persist_event(event: dict[str, Any]) -> bool:
                         event["line_id"],
                         event["station_code"],
                         event["pallet_id"],
+                        event["pallet_run_id"],
                         event["weld_id"],
                         f"Anomalia detectada / {station.display_name}",
                         f"{event['detection_reason']}. Pallet {event['pallet_id']}, soldadura {event['weld_id']}/8.",
@@ -367,10 +541,15 @@ def fetch_dashboard_data() -> dict[str, Any]:
                     s.station_order,
                     e.event_id,
                     e.pallet_id,
+                    e.pallet_run_id,
                     e.weld_id,
                     e.status,
                     e.source_timestamp,
                     e.voltaje,
+                    e.ampers,
+                    e.volts,
+                    e.real_station,
+                    e.schedule,
                     e.anomaly_score,
                     e.confidence,
                     a.alert_id,
@@ -404,11 +583,19 @@ def fetch_dashboard_data() -> dict[str, Any]:
                 SELECT
                     e.event_id,
                     e.pallet_id,
+                    e.pallet_run_id,
                     e.weld_id,
                     e.status,
                     e.source_timestamp,
                     e.voltaje,
                     e.presion,
+                    e.distancia,
+                    e.fuerza,
+                    e.ampers,
+                    e.volts,
+                    e.watts,
+                    e.real_station,
+                    e.schedule,
                     e.anomaly_score,
                     e.confidence,
                     e.detection_reason,
@@ -417,9 +604,11 @@ def fetch_dashboard_data() -> dict[str, Any]:
                 FROM weld_events e
                 JOIN stations s ON s.station_code = e.station_code
                 LEFT JOIN alerts a ON a.event_id = e.event_id
+                WHERE e.line_id = %s
                 ORDER BY e.source_timestamp DESC
                 LIMIT 10
-                """
+                """,
+                (LINE_ID,),
             )
             recent_logs = [serialize_row(row) for row in cur.fetchall()]
 
@@ -433,8 +622,11 @@ def fetch_dashboard_data() -> dict[str, Any]:
                         1
                     ) AS success_rate
                 FROM weld_events
-                WHERE source_timestamp::date = CURRENT_DATE
-                """
+                WHERE line_id = %s
+                  AND source_timestamp >= CURRENT_DATE::timestamptz
+                  AND source_timestamp < (CURRENT_DATE + INTERVAL '1 day')::timestamptz
+                """,
+                (LINE_ID,),
             )
             stats = serialize_row(cur.fetchone() or {})
 
@@ -444,10 +636,12 @@ def fetch_dashboard_data() -> dict[str, Any]:
                     TO_CHAR(date_trunc('hour', source_timestamp), 'HH24:00') AS bucket,
                     COUNT(*) AS welds
                 FROM weld_events
-                WHERE source_timestamp >= NOW() - INTERVAL '8 hours'
+                WHERE line_id = %s
+                  AND source_timestamp >= NOW() - INTERVAL '8 hours'
                 GROUP BY 1
                 ORDER BY 1
-                """
+                """,
+                (LINE_ID,),
             )
             throughput_rows = cur.fetchall()
 
@@ -455,10 +649,12 @@ def fetch_dashboard_data() -> dict[str, Any]:
                 """
                 SELECT alert_id, title, message
                 FROM alerts
-                WHERE status = 'ACTIVE'
+                WHERE line_id = %s
+                  AND status = 'ACTIVE'
                 ORDER BY created_at DESC
                 LIMIT 1
-                """
+                """,
+                (LINE_ID,),
             )
             active_alert = cur.fetchone()
 
@@ -510,10 +706,10 @@ def fetch_history_data(
         clauses.append("e.pallet_id ILIKE %s")
         params.append(f"%{pallet_id}%")
     if date_from:
-        clauses.append("e.source_timestamp::date >= %s")
+        clauses.append("e.source_timestamp >= %s::date")
         params.append(date_from)
     if date_to:
-        clauses.append("e.source_timestamp::date <= %s")
+        clauses.append("e.source_timestamp < (%s::date + INTERVAL '1 day')")
         params.append(date_to)
 
     where_sql = " AND ".join(clauses)
@@ -530,10 +726,14 @@ def fetch_history_data(
                         100.0 * COUNT(*) FILTER (WHERE NOT e.is_anomaly) / NULLIF(COUNT(*), 0),
                         1
                     ) AS success_rate
-                FROM weld_events e
-                WHERE {where_sql}
+                FROM (
+                    SELECT e.is_anomaly
+                    FROM weld_events e
+                    WHERE {where_sql}
+                    LIMIT %s
+                ) e
                 """,
-                params,
+                [*params, HISTORY_COUNT_CAP + 1],
             )
             summary = serialize_row(cur.fetchone() or {})
 
@@ -542,10 +742,18 @@ def fetch_history_data(
                 SELECT
                     e.event_id,
                     e.pallet_id,
+                    e.pallet_run_id,
                     e.weld_id,
                     e.source_timestamp,
                     e.voltaje,
                     e.presion,
+                    e.distancia,
+                    e.fuerza,
+                    e.ampers,
+                    e.volts,
+                    e.watts,
+                    e.real_station,
+                    e.schedule,
                     e.status,
                     s.display_name AS station_name,
                     a.alert_id
@@ -560,7 +768,9 @@ def fetch_history_data(
             )
             items = [serialize_row(row) for row in cur.fetchall()]
 
-    total_records = int(summary.get("total_records") or 0)
+    raw_count = int(summary.get("total_records") or 0)
+    count_capped = raw_count > HISTORY_COUNT_CAP
+    total_records = HISTORY_COUNT_CAP if count_capped else raw_count
     total_pages = max((total_records + page_size - 1) // page_size, 1)
 
     return {
@@ -574,6 +784,7 @@ def fetch_history_data(
         "page_size": page_size,
         "total_records": total_records,
         "total_pages": total_pages,
+        "count_capped": count_capped,
         "station_options": [
             {"station_code": station.code, "display_name": station.display_name}
             for station in STATIONS
@@ -583,6 +794,7 @@ def fetch_history_data(
             "success_rate": float(summary.get("success_rate") or 0),
             "errors": int(summary.get("anomaly_count") or 0),
             "active_line": LINE_LABEL.upper(),
+            "count_capped": count_capped,
         },
     }
 
@@ -600,8 +812,18 @@ def fetch_alert_detail(alert_id: str) -> dict[str, Any] | None:
                     a.created_at,
                     e.event_id,
                     e.pallet_id,
+                    e.pallet_run_id,
                     e.weld_id,
                     e.source_timestamp,
+                    e.distancia,
+                    e.fuerza,
+                    e.ampers,
+                    e.volts,
+                    e.watts,
+                    e.real_station,
+                    e.schedule,
+                    e.plc_ip,
+                    e.electrode_count,
                     e.voltaje,
                     e.corriente,
                     e.presion,
@@ -623,12 +845,22 @@ def fetch_alert_detail(alert_id: str) -> dict[str, Any] | None:
             if not alert:
                 return None
 
+            timeline_where = "e.pallet_run_id = %s" if alert.get("pallet_run_id") else "e.pallet_id = %s"
+            timeline_param = alert.get("pallet_run_id") or alert["pallet_id"]
             cur.execute(
-                """
+                f"""
                 SELECT
                     e.event_id,
+                    e.pallet_run_id,
                     e.weld_id,
                     e.source_timestamp,
+                    e.distancia,
+                    e.fuerza,
+                    e.ampers,
+                    e.volts,
+                    e.watts,
+                    e.real_station,
+                    e.schedule,
                     e.voltaje,
                     e.corriente,
                     e.presion,
@@ -640,10 +872,10 @@ def fetch_alert_detail(alert_id: str) -> dict[str, Any] | None:
                     a.alert_id
                 FROM weld_events e
                 LEFT JOIN alerts a ON a.event_id = e.event_id
-                WHERE e.pallet_id = %s
+                WHERE {timeline_where}
                 ORDER BY e.weld_id ASC, e.source_timestamp ASC
                 """,
-                (alert["pallet_id"],),
+                (timeline_param,),
             )
             pallet_events = [serialize_row(row) for row in cur.fetchall()]
 

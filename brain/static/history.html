@@ -4,10 +4,8 @@
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>WeldGuard AI - Historial</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <script>
+        window.tailwind = window.tailwind || {};
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -33,6 +31,9 @@
             }
         };
     </script>
+    <script async src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="/static/app.css" rel="stylesheet">
     <script defer src="/static/history.js"></script>
 </head>
@@ -122,8 +123,8 @@
                                 <th class="px-6 py-4 font-bold">Fecha y hora</th>
                                 <th class="px-6 py-4 font-bold">Pallet</th>
                                 <th class="px-6 py-4 font-bold">Estacion</th>
-                                <th class="px-6 py-4 text-right font-bold">Voltaje</th>
-                                <th class="px-6 py-4 text-right font-bold">Presion</th>
+                                <th class="px-6 py-4 text-right font-bold">Amps</th>
+                                <th class="px-6 py-4 text-right font-bold">Volts</th>
                                 <th class="px-6 py-4 text-center font-bold">Estado</th>
                                 <th class="px-6 py-4 text-right font-bold">Accion</th>
                             </tr>

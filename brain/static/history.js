@@ -18,6 +18,8 @@ function formatDateTime(value) {
 function renderHistoryRow(item) {
     const when = formatDateTime(item.source_timestamp);
     const isAlert = item.status === "MALO";
+    const amps = item.ampers == null ? item.corriente : item.ampers;
+    const volts = item.volts == null ? item.voltaje : item.volts;
 
     return `
         <tr class="${isAlert ? "bg-error-container/5 border-l-4 border-error/50" : ""} group transition-colors hover:bg-surface-high/20">
@@ -27,8 +29,8 @@ function renderHistoryRow(item) {
             </td>
             <td class="px-6 py-4 font-mono text-sm text-primary">${item.pallet_id}</td>
             <td class="px-6 py-4 text-sm text-on-surface">${item.station_name}</td>
-            <td class="px-6 py-4 text-right text-sm ${isAlert ? "text-primary-container font-medium" : "text-on-surface"}">${Number(item.voltaje || 0).toFixed(2)} V</td>
-            <td class="px-6 py-4 text-right text-sm ${isAlert ? "text-primary-container/80" : "text-on-surface"}">${Number(item.presion || 0).toFixed(2)} bar</td>
+            <td class="px-6 py-4 text-right text-sm ${isAlert ? "text-primary-container font-medium" : "text-on-surface"}">${amps == null ? "--" : Number(amps).toFixed(2)}</td>
+            <td class="px-6 py-4 text-right text-sm ${isAlert ? "text-primary-container/80" : "text-on-surface"}">${volts == null ? "--" : Number(volts).toFixed(2)} V</td>
             <td class="px-6 py-4 text-center">
                 <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${isAlert ? "bg-error-container text-error" : "bg-tertiary-container text-tertiary"}">
                     <span class="h-1.5 w-1.5 rounded-full ${isAlert ? "bg-primary-container" : "bg-tertiary"}"></span>
@@ -81,8 +83,24 @@ async function loadHistory(page = 1) {
         }
     });
 
-    const response = await fetch(`/api/history?${params.toString()}`);
-    const data = await response.json();
+    let data;
+    try {
+        const response = await fetch(`/api/history?${params.toString()}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        data = await response.json();
+    } catch (error) {
+        document.getElementById("history-table-body").innerHTML = `
+            <tr>
+                <td class="px-6 py-6 text-sm font-semibold text-primary-container" colspan="7">
+                    No fue posible cargar el historial: ${error.message}
+                </td>
+            </tr>
+        `;
+        document.getElementById("pagination-summary").textContent = "Error cargando historial";
+        return;
+    }
 
     historyState.totalPages = data.total_pages;
     populateStationOptions(data.station_options || []);

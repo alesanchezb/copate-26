@@ -1,69 +1,105 @@
-import paho.mqtt.client as mqtt
-import json
-import time
-import random
-import uuid
-from datetime import datetime, timezone
+from __future__ import annotations
 
-# Configuración básica
-BROKER = "localhost"
-PORT = 1883
-TOPIC = "fabrica/linea1/soldadura"
+import argparse
+import logging
+from pathlib import Path
+from threading import Thread
 
-client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
-client.connect(BROKER, PORT, 60)
+from plc_gateway.adapter import PahoMqttPublisher, PlcMqttAdapter
+from plc_gateway.clients import SimulatedTagClient
+from plc_gateway.simulation import HistoricalPlcProducer
+from plc_gateway.sources import HistoricalWeldDataSource
 
 
-def obtener_estacion(weld_index):
-    if weld_index <= 2:
-        return "station_1"
-    if weld_index <= 4:
-        return "station_2"
-    if weld_index <= 6:
-        return "station_3"
-    return "station_4"
+DEFAULT_TOPIC = "fabrica/linea1/soldadura"
 
-def generar_datos_soldadura(pallet_id, weld_index):
-    """Genera datos simulando una distribución normal (Gauss)"""
-    # Simulamos que lo ideal es: 12V, 450A, 3.0 bar, 0.8s
-    return {
-        "event_id": str(uuid.uuid4()),
-        "line_id": "linea1",
-        "station_id": obtener_estacion(weld_index),
-        "source_type": "simulator",
-        "pallet_id": f"PALLET_{pallet_id}",
-        "weld_id": weld_index,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "params": {
-            "voltaje": round(random.gauss(12, 0.2), 2),
-            "corriente": round(random.gauss(450, 10), 1),
-            "presion": round(random.gauss(3.0, 0.05), 2),
-            "tiempo_ms": round(random.gauss(800, 20), 0)
-        }
-    }
 
-print("🚀 Simulador iniciado. Enviando datos al broker...")
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Simulador PLC realista con tags NewData y handshake hacia MQTT."
+    )
+    parser.add_argument("--broker", default="localhost", help="Host MQTT")
+    parser.add_argument("--port", type=int, default=1883, help="Puerto MQTT")
+    parser.add_argument("--topic", default=DEFAULT_TOPIC, help="Topic MQTT destino")
+    parser.add_argument("--line-id", default="linea1", help="Identificador de linea")
+    parser.add_argument(
+        "--db-path",
+        default="plc_reader_y_app/WeldParameters.db",
+        help="SQLite historico usado como fuente primaria",
+    )
+    parser.add_argument(
+        "--csv-path",
+        default="plc_reader_y_app/WeldResults_10Feb_2026_24Feb_2026.csv",
+        help="CSV historico usado como fallback",
+    )
+    parser.add_argument(
+        "--window-size",
+        type=int,
+        default=256,
+        help="Cantidad de filas contiguas por ventana historica",
+    )
+    parser.add_argument(
+        "--speed",
+        type=float,
+        default=4.0,
+        help="Factor de aceleracion del ritmo historico",
+    )
+    parser.add_argument(
+        "--timestamp-mode",
+        choices=("now", "historical"),
+        default="now",
+        help="Usa tiempo actual para dashboard real-time o timestamp historico original",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Cantidad maxima de lecturas a emitir antes de salir",
+    )
+    return parser.parse_args()
 
-try:
-    pallet_count = 1000
-    while True:
-        # Un pallet tiene 8 soldaduras
-        for i in range(1, 9):
-            data = generar_datos_soldadura(pallet_count, i)
-            
-            # Convertimos a JSON y enviamos
-            mensaje = json.dumps(data)
-            client.publish(TOPIC, mensaje)
-            
-            print(
-                f"📡 Enviada soldadura {i}/8 del {data['pallet_id']} "
-                f"en {data['station_id']}"
-            )
-            time.sleep(1) # Simula el tiempo entre soldaduras individuales
-            
-        print(f"✅ Pallet {pallet_count} terminado. Esperando siguiente...")
-        pallet_count += 1
-        time.sleep(5) # Tiempo que tarda en llegar el siguiente pallet
-except KeyboardInterrupt:
-    print("\n🛑 Simulador detenido.")
-    client.disconnect()
+
+def main() -> None:
+    args = parse_args()
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+    source = HistoricalWeldDataSource(
+        db_path=Path(args.db_path),
+        csv_path=Path(args.csv_path),
+    )
+    tag_client = SimulatedTagClient()
+    publisher = PahoMqttPublisher(args.broker, args.port)
+    adapter = PlcMqttAdapter(
+        tag_client=tag_client,
+        publisher=publisher,
+        topic=args.topic,
+        line_id=args.line_id,
+        source_type="plc_simulator",
+        timestamp_mode=args.timestamp_mode,
+    )
+    producer = HistoricalPlcProducer(
+        source=source,
+        tag_client=tag_client,
+        window_size=args.window_size,
+        speed=args.speed,
+    )
+
+    adapter_thread = Thread(target=adapter.run_forever, daemon=True)
+    adapter_thread.start()
+
+    print(
+        "Simulador PLC iniciado. "
+        f"Fuente={source.backend}, MQTT={args.broker}:{args.port}, topic={args.topic}"
+    )
+    print("Presiona Ctrl+C para detener.")
+
+    try:
+        producer.run_forever(limit=args.limit)
+    except KeyboardInterrupt:
+        print("\nSimulador detenido.")
+    finally:
+        publisher.close()
+
+
+if __name__ == "__main__":
+    main()

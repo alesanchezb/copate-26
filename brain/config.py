@@ -44,6 +44,18 @@ STATIONS = (
     StationConfig("station_4", "NODE 04", "Estacion 4", 4, 7, 8),
 )
 
+REAL_STATION_TO_CODE = {
+    "140": "station_1",
+    "145": "station_2",
+    "150": "station_3",
+    "155": "station_4",
+}
+
+SCHEDULE_TO_ORDER = {
+    "Sch1": 1,
+    "Sch2": 2,
+}
+
 
 def station_for_weld_id(weld_id: int) -> StationConfig:
     for station in STATIONS:
@@ -65,3 +77,35 @@ def station_by_code(station_code: str) -> StationConfig | None:
         }:
             return station
     return None
+
+
+def normalize_schedule(schedule: str | int | None) -> str | None:
+    if schedule is None:
+        return None
+    raw = str(schedule).strip()
+    if not raw:
+        return None
+    if raw.lower().startswith("sch"):
+        suffix = raw[3:]
+    else:
+        suffix = raw
+    try:
+        normalized = f"Sch{int(suffix)}"
+    except ValueError:
+        return raw
+    return normalized if normalized in SCHEDULE_TO_ORDER else raw
+
+
+def station_by_real_station(real_station: str | int | None) -> StationConfig | None:
+    if real_station is None:
+        return None
+    station_code = REAL_STATION_TO_CODE.get(str(real_station).strip())
+    return station_by_code(station_code or "")
+
+
+def weld_id_for_real_station(real_station: str | int | None, schedule: str | int | None) -> int | None:
+    station = station_by_real_station(real_station)
+    schedule_name = normalize_schedule(schedule)
+    if not station or schedule_name not in SCHEDULE_TO_ORDER:
+        return None
+    return (station.station_order - 1) * 2 + SCHEDULE_TO_ORDER[schedule_name]

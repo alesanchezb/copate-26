@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WeldGuard AI - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-primary": "#005faf",
+                    "outline-variant": "#434652",
+                    "error": "#ffb4ab",
+                    "on-error-container": "#ffdad6",
+                    "surface": "#131313",
+                    "on-secondary-fixed": "#071e27",
+                    "surface-container-lowest": "#0e0e0e",
+                    "secondary-fixed": "#cfe6f2",
+                    "on-surface": "#e5e2e1",
+                    "surface-dim": "#131313",
+                    "on-tertiary": "#003731",
+                    "primary-fixed": "#d4e3ff",
+                    "surface-variant": "#353534",
+                    "on-primary-container": "#93beff",
+                    "on-secondary": "#1e333c",
+                    "primary-fixed-dim": "#a5c8ff",
+                    "on-surface-variant": "#c3c6d4",
+                    "on-tertiary-container": "#66cebe",
+                    "tertiary": "#70d8c8",
+                    "inverse-on-surface": "#313030",
+                    "surface-container": "#201f1f",
+                    "surface-tint": "#a5c8ff",
+                    "primary": "#a5c8ff",
+                    "secondary-fixed-dim": "#b4cad6",
+                    "background": "#131313",
+                    "error-container": "#93000a",
+                    "secondary-container": "#374c56",
+                    "on-primary-fixed": "#001c3a",
+                    "primary-container": "#004c8f",
+                    "surface-container-highest": "#353534",
+                    "on-tertiary-fixed": "#00201c",
+                    "on-secondary-container": "#a6bcc7",
+                    "secondary": "#b4cad6",
+                    "tertiary-container": "#00564d",
+                    "surface-container-high": "#2a2a2a",
+                    "tertiary-fixed-dim": "#70d8c8",
+                    "on-primary": "#00315f",
+                    "surface-bright": "#393939",
+                    "on-error": "#690005",
+                    "on-primary-fixed-variant": "#004786",
+                    "on-background": "#e5e2e1",
+                    "surface-container-low": "#1c1b1b",
+                    "inverse-surface": "#e5e2e1",
+                    "outline": "#8d909d",
+                    "on-tertiary-fixed-variant": "#005048",
+                    "tertiary-fixed": "#8df5e4",
+                    "on-secondary-fixed-variant": "#354a53"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Space Grotesk"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #131313;
+            color: #e5e2e1;
+            font-family: 'Inter', sans-serif;
+        }
+        .hud-glow-error {
+            background: linear-gradient(180deg, rgba(147, 0, 10, 0.15) 0%, rgba(19, 19, 19, 0) 100%);
+            border-top: 2px solid #ffb4ab;
+        }
+        .hud-glow-normal {
+            background: linear-gradient(180deg, rgba(0, 86, 77, 0.1) 0%, rgba(19, 19, 19, 0) 100%);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0e0e0e;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #434652;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="overflow-hidden">
+<div class="flex h-screen w-full">
+<!-- SideNavBar -->
+<aside class="bg-[#0e0e0e] dark:bg-[#0e0e0e] docked left-0 h-screen w-64 flex flex-col h-full py-8">
+<div class="px-6 mb-10">
+<h2 class="text-lg font-['Space_Grotesk'] text-[#e5e2e1]">WeldGuard AI</h2>
+</div>
+<nav class="flex-grow space-y-1">
+<a class="flex items-center px-6 py-3 text-[#a5c8ff] border-r-2 border-[#a5c8ff] bg-[#a5c8ff]/5 transition-all duration-200 ease-in-out font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined mr-3">dashboard</span>
+                    Dashboard
+                </a>
+<a class="flex items-center px-6 py-3 text-[#e5e2e1]/40 hover:text-[#e5e2e1] hover:bg-[#2a2a2a]/30 transition-all duration-200 ease-in-out font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined mr-3">history</span>
+                    History
+                </a>
+<a class="flex items-center px-6 py-3 text-[#e5e2e1]/40 hover:text-[#e5e2e1] hover:bg-[#2a2a2a]/30 transition-all duration-200 ease-in-out font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined mr-3">settings</span>
+                    Settings
+                </a>
+<a class="flex items-center px-6 py-3 text-[#e5e2e1]/40 hover:text-[#e5e2e1] hover:bg-[#2a2a2a]/30 transition-all duration-200 ease-in-out font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined mr-3">notifications</span>
+                    Notifications
+                </a>
+</nav>
+<div class="px-6 mt-auto space-y-4">
+<div class="flex items-center space-x-3 p-3 bg-[#2a2a2a]/20 rounded-lg">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="professional male factory operator in technical gear portrait clean lighting sharp focus" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAR7Wg35oSHSmQuIFgrGRh2uGBVn6vDGEbZTqIngzHCt4jRKANRb19MVu3oHBy53Y2vGXl_9mZNp5kujoYT-8YWSzzLzhZL9ulF1ySxofuHLePdPlP5JzW5ffTi8Xg4m5lUno7DU_rqBTdCW6XgXTFsvquIs3XZ2QjymjT_qWkHnFn4ce6578VxtN_cCJEKmgEopxHxgZhc11GDlSIM4m2YJgzgQ27lnDRoOcI0GpKhQk4k99EK53znO1b6hVRZIxFsgCBoo6yDa9U"/>
+</div>
+<div>
+<p class="text-xs font-bold text-on-surface">Operator 01</p>
+<p class="text-[10px] text-on-surface-variant">Welding Line Alpha</p>
+</div>
+</div>
+<div class="space-y-1">
+<a class="flex items-center px-2 py-2 text-[#e5e2e1]/40 hover:text-[#e5e2e1] transition-all duration-200 text-sm" href="#">
+<span class="material-symbols-outlined mr-3 text-sm">help</span>
+                        Support
+                    </a>
+<a class="flex items-center px-2 py-2 text-[#e5e2e1]/40 hover:text-error transition-all duration-200 text-sm" href="#">
+<span class="material-symbols-outlined mr-3 text-sm">logout</span>
+                        Logout
+                    </a>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-grow flex flex-col overflow-hidden">
+<!-- TopNavBar -->
+<header class="bg-[#131313] flex justify-between items-center w-full px-6 h-16 border-b border-[#434652]/15">
+<div class="flex items-center space-x-4">
+<h1 class="text-2xl font-bold tracking-tighter text-[#a5c8ff] font-['Space_Grotesk']">WeldGuard AI</h1>
+<div class="h-4 w-[1px] bg-outline-variant/30"></div>
+<span class="text-on-surface-variant text-sm font-medium">Alpha Line Control</span>
+</div>
+<div class="flex items-center space-x-6">
+<div class="flex items-center bg-[#2a2a2a]/30 px-3 py-1.5 rounded-full border border-outline-variant/10">
+<div class="w-2 h-2 rounded-full bg-tertiary mr-2 animate-pulse"></div>
+<span class="text-xs font-bold text-[#a5c8ff] tracking-tight font-['Inter']">System Active</span>
+</div>
+<div class="flex items-center space-x-4 text-on-surface-variant">
+<button class="material-symbols-outlined hover:bg-[#2a2a2a] transition-colors p-1.5 rounded-lg">schedule</button>
+<button class="material-symbols-outlined hover:bg-[#2a2a2a] transition-colors p-1.5 rounded-lg">sensors</button>
+</div>
+</div>
+</header>
+<!-- Dashboard Stage -->
+<div class="flex-grow overflow-y-auto custom-scrollbar p-8">
+<!-- Station HUD -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+<!-- Station 1 -->
+<div class="bg-surface-container-high p-6 rounded-lg hud-glow-normal relative overflow-hidden group hover:bg-surface-bright transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Node 01</span>
+<div class="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_8px_rgba(112,216,200,0.5)]"></div>
+</div>
+<h3 class="font-headline text-2xl font-bold text-on-surface mb-1">Estación 1</h3>
+<p class="text-xs text-tertiary font-medium">Normal Operation</p>
+<div class="mt-6 flex items-end justify-between">
+<div class="text-[10px] text-on-surface-variant">Current: 14.2kA</div>
+<div class="material-symbols-outlined text-on-surface-variant/20 text-4xl">precision_manufacturing</div>
+</div>
+</div>
+<!-- Station 2 (Error State) -->
+<div class="bg-surface-container-high p-6 rounded-lg hud-glow-error relative overflow-hidden ring-1 ring-error/20 animate-pulse-slow">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] uppercase tracking-widest text-error font-bold">Node 02</span>
+<div class="w-2 h-2 rounded-full bg-error shadow-[0_0_12px_rgba(255,180,171,0.8)]"></div>
+</div>
+<h3 class="font-headline text-2xl font-bold text-on-surface mb-1">Estación 2</h3>
+<p class="text-sm text-error font-bold mb-1">Anomaly Detected</p>
+<p class="text-[11px] text-on-error-container bg-error-container/40 px-2 py-0.5 inline-block rounded">Error en soldadura 3/8</p>
+<div class="mt-4 flex items-end justify-between">
+<button class="bg-error text-on-error px-3 py-1 rounded text-[10px] font-bold uppercase tracking-tighter hover:bg-white transition-colors">Emergency Halt</button>
+<div class="material-symbols-outlined text-error/30 text-4xl">warning</div>
+</div>
+</div>
+<!-- Station 3 -->
+<div class="bg-surface-container-high p-6 rounded-lg hud-glow-normal relative overflow-hidden group hover:bg-surface-bright transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Node 03</span>
+<div class="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_8px_rgba(112,216,200,0.5)]"></div>
+</div>
+<h3 class="font-headline text-2xl font-bold text-on-surface mb-1">Estación 3</h3>
+<p class="text-xs text-tertiary font-medium">Normal Operation</p>
+<div class="mt-6 flex items-end justify-between">
+<div class="text-[10px] text-on-surface-variant">Current: 13.9kA</div>
+<div class="material-symbols-outlined text-on-surface-variant/20 text-4xl">precision_manufacturing</div>
+</div>
+</div>
+<!-- Station 4 -->
+<div class="bg-surface-container-high p-6 rounded-lg hud-glow-normal relative overflow-hidden group hover:bg-surface-bright transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Node 04</span>
+<div class="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_8px_rgba(112,216,200,0.5)]"></div>
+</div>
+<h3 class="font-headline text-2xl font-bold text-on-surface mb-1">Estación 4</h3>
+<p class="text-xs text-tertiary font-medium">Normal Operation</p>
+<div class="mt-6 flex items-end justify-between">
+<div class="text-[10px] text-on-surface-variant">Current: 14.1kA</div>
+<div class="material-symbols-outlined text-on-surface-variant/20 text-4xl">precision_manufacturing</div>
+</div>
+</div>
+</div>
+<!-- Main Grid: Logs and Stats -->
+<div class="grid grid-cols-12 gap-8 items-start">
+<!-- Center Section: Recent Logs -->
+<div class="col-span-12 lg:col-span-8">
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-2xl">
+<div class="px-6 py-5 border-b border-outline-variant/10 flex justify-between items-center">
+<h2 class="font-headline text-xl font-bold">Recent Logs</h2>
+<button class="text-[10px] font-bold text-primary hover:text-white transition-colors uppercase tracking-widest">Export CSV</button>
+</div>
+<div class="w-full">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low">
+<th class="px-6 py-3 text-[10px] font-bold text-outline uppercase tracking-widest">Timestamp</th>
+<th class="px-6 py-3 text-[10px] font-bold text-outline uppercase tracking-widest">Pallet ID</th>
+<th class="px-6 py-3 text-[10px] font-bold text-outline uppercase tracking-widest">Station</th>
+<th class="px-6 py-3 text-[10px] font-bold text-outline uppercase tracking-widest">Status</th>
+<th class="px-6 py-3 text-[10px] font-bold text-outline uppercase tracking-widest">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface-variant">14:23:45</td>
+<td class="px-6 py-4 text-xs font-mono text-primary-fixed-dim">P-98234-A</td>
+<td class="px-6 py-4 text-xs text-on-surface">Estación 1</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">BUENO</span></td>
+<td class="px-6 py-4"><span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 cursor-pointer">visibility</span></td>
+</tr>
+<!-- Row 2 -->
+<tr class="bg-surface-container-low/30 hover:bg-surface-container transition-colors group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface-variant">14:22:12</td>
+<td class="px-6 py-4 text-xs font-mono text-primary-fixed-dim">P-98233-X</td>
+<td class="px-6 py-4 text-xs text-on-surface">Estación 2</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-error-container/40 text-error text-[10px] font-bold rounded">MALO</span></td>
+<td class="px-6 py-4"><span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 cursor-pointer">visibility</span></td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface-variant">14:20:56</td>
+<td class="px-6 py-4 text-xs font-mono text-primary-fixed-dim">P-98232-B</td>
+<td class="px-6 py-4 text-xs text-on-surface">Estación 4</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">BUENO</span></td>
+<td class="px-6 py-4"><span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 cursor-pointer">visibility</span></td>
+</tr>
+<!-- Row 4 -->
+<tr class="bg-surface-container-low/30 hover:bg-surface-container transition-colors group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface-variant">14:19:30</td>
+<td class="px-6 py-4 text-xs font-mono text-primary-fixed-dim">P-98231-A</td>
+<td class="px-6 py-4 text-xs text-on-surface">Estación 3</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">BUENO</span></td>
+<td class="px-6 py-4"><span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 cursor-pointer">visibility</span></td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface-variant">14:18:15</td>
+<td class="px-6 py-4 text-xs font-mono text-primary-fixed-dim">P-98230-C</td>
+<td class="px-6 py-4 text-xs text-on-surface">Estación 1</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">BUENO</span></td>
+<td class="px-6 py-4"><span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 cursor-pointer">visibility</span></td>
+</tr>
+<!-- Row 6 -->
+<tr class="bg-surface-container-low/30 hover:bg-surface-container transition-colors group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface-variant">14:16:44</td>
+<td class="px-6 py-4 text-xs font-mono text-primary-fixed-dim">P-98229-Z</td>
+<td class="px-6 py-4 text-xs text-on-surface">Estación 2</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">BUENO</span></td>
+<td class="px-6 py-4"><span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 cursor-pointer">visibility</span></td>
+</tr>
+<!-- Row 7 -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface-variant">14:15:01</td>
+<td class="px-6 py-4 text-xs font-mono text-primary-fixed-dim">P-98228-B</td>
+<td class="px-6 py-4 text-xs text-on-surface">Estación 4</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">BUENO</span></td>
+<td class="px-6 py-4"><span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 cursor-pointer">visibility</span></td>
+</tr>
+<!-- Row 8 -->
+<tr class="bg-surface-container-low/30 hover:bg-surface-container transition-colors group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface-variant">14:12:33</td>
+<td class="px-6 py-4 text-xs font-mono text-primary-fixed-dim">P-98227-A</td>
+<td class="px-6 py-4 text-xs text-on-surface">Estación 3</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">BUENO</span></td>
+<td class="px-6 py-4"><span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 cursor-pointer">visibility</span></td>
+</tr>
+<!-- Row 9 -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface-variant">14:10:12</td>
+<td class="px-6 py-4 text-xs font-mono text-primary-fixed-dim">P-98226-L</td>
+<td class="px-6 py-4 text-xs text-on-surface">Estación 2</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-error-container/40 text-error text-[10px] font-bold rounded">MALO</span></td>
+<td class="px-6 py-4"><span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 cursor-pointer">visibility</span></td>
+</tr>
+<!-- Row 10 -->
+<tr class="bg-surface-container-low/30 hover:bg-surface-container transition-colors group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface-variant">14:08:59</td>
+<td class="px-6 py-4 text-xs font-mono text-primary-fixed-dim">P-98225-M</td>
+<td class="px-6 py-4 text-xs text-on-surface">Estación 1</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded">BUENO</span></td>
+<td class="px-6 py-4"><span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 cursor-pointer">visibility</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Side Widget: Quick Stats -->
+<div class="col-span-12 lg:col-span-4 space-y-6">
+<!-- Stats Card -->
+<div class="bg-surface-container-high rounded-xl p-6 border-l-4 border-primary shadow-lg">
+<h3 class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-6">Quick Performance Stats</h3>
+<div class="space-y-6">
+<div class="flex justify-between items-end">
+<div>
+<p class="text-xs text-on-surface-variant mb-1">Welds Today</p>
+<h4 class="text-3xl font-headline font-bold text-on-surface">1,284</h4>
+</div>
+<div class="text-tertiary text-xs font-bold">+12% <span class="material-symbols-outlined text-xs align-middle">trending_up</span></div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[10px] font-bold uppercase tracking-tight">
+<span>Success Rate</span>
+<span class="text-tertiary">98.2%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-lowest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 98.2%"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[10px] font-bold uppercase tracking-tight">
+<span>Anomaly Count</span>
+<span class="text-error">23</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-lowest rounded-full overflow-hidden">
+<div class="h-full bg-error rounded-full" style="width: 15%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Real-time Graph Placeholder -->
+<div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/10">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Line Throughput</h3>
+<div class="flex space-x-1">
+<div class="w-1.5 h-1.5 rounded-full bg-primary/40"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary/40"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+</div>
+</div>
+<!-- Mock Asymmetric Graph -->
+<div class="h-32 flex items-end justify-between space-x-1">
+<div class="w-full bg-primary-container/20 rounded-t-sm" style="height: 40%"></div>
+<div class="w-full bg-primary-container/20 rounded-t-sm" style="height: 65%"></div>
+<div class="w-full bg-primary-container/20 rounded-t-sm" style="height: 55%"></div>
+<div class="w-full bg-primary-container/20 rounded-t-sm" style="height: 80%"></div>
+<div class="w-full bg-primary-container/40 rounded-t-sm" style="height: 45%"></div>
+<div class="w-full bg-primary-container/40 rounded-t-sm" style="height: 70%"></div>
+<div class="w-full bg-primary-container/60 rounded-t-sm" style="height: 95%"></div>
+<div class="w-full bg-primary rounded-t-sm" style="height: 85%"></div>
+</div>
+<div class="mt-4 flex justify-between text-[10px] text-outline font-mono">
+<span>08:00</span>
+<span>12:00</span>
+<span>16:00</span>
+</div>
+</div>
+<!-- System Alerts -->
+<div class="bg-surface-container-low rounded-xl p-4 border border-error/10">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-lg bg-error-container/20 flex items-center justify-center text-error">
+<span class="material-symbols-outlined">warning</span>
+</div>
+<div>
+<p class="text-xs font-bold text-on-surface">Critcal Alert</p>
+<p class="text-[10px] text-on-surface-variant">Maintenance required in Station 2 sensors.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -11,6 +11,15 @@ function formatPercent(value) {
     return `${Number(value || 0).toFixed(1)}%`;
 }
 
+function formatProcessSignal(item) {
+    if (item.ampers != null || item.volts != null) {
+        const amps = item.ampers == null ? "--" : Number(item.ampers).toFixed(2);
+        const volts = item.volts == null ? "--" : Number(item.volts).toFixed(2);
+        return `Amps: ${amps} | Volts: ${volts}`;
+    }
+    return `Voltaje: ${Number(item.voltaje || 0).toFixed(2)} V`;
+}
+
 function renderStationCard(station) {
     const hasEvent = Boolean(station.event_id);
     const isAlert = station.status === "MALO";
@@ -35,7 +44,7 @@ function renderStationCard(station) {
             </p>
             <div class="mt-6 flex items-end justify-between gap-3">
                 <div class="text-[10px] text-on-surface-variant">
-                    ${hasEvent ? `Voltaje: ${Number(station.voltaje || 0).toFixed(2)} V` : "Esperando telemetria"}
+                    ${hasEvent ? formatProcessSignal(station) : "Esperando telemetria"}
                 </div>
                 <div class="text-right">${action}</div>
             </div>
@@ -111,9 +120,30 @@ function renderActiveAlert(alert) {
     `;
 }
 
+let dashboardInflight = false;
+
 async function loadDashboard() {
-    const response = await fetch("/api/dashboard");
-    const data = await response.json();
+    if (dashboardInflight) {
+        return;
+    }
+    dashboardInflight = true;
+    let data;
+    try {
+        const response = await fetch("/api/dashboard");
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        data = await response.json();
+    } catch (error) {
+        document.getElementById("stations-grid").innerHTML = `
+            <div class="surface-panel rounded-lg p-6 text-sm font-semibold text-primary-container">
+                No fue posible cargar el dashboard: ${error.message}
+            </div>
+        `;
+        return;
+    } finally {
+        dashboardInflight = false;
+    }
 
     document.getElementById("line-label").textContent = data.metadata.line_label;
     document.getElementById("line-label-sidebar").textContent = data.metadata.line_label;
@@ -137,4 +167,4 @@ async function loadDashboard() {
 }
 
 loadDashboard();
-setInterval(loadDashboard, 2500);
+setInterval(loadDashboard, 5000);

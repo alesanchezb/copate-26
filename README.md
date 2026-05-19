@@ -7,7 +7,7 @@ El sistema actual incluye:
 - `broker`: Mosquitto para recibir eventos MQTT.
 - `db`: PostgreSQL para persistir estaciones, eventos y alertas.
 - `cerebro`: servicio FastAPI que consume MQTT, genera alertas y sirve la interfaz web.
-- `simulator.py`: simulador local que publica eventos al broker.
+- `simulator.py`: simulador local de PLC que reproduce datos historicos reales con tags `NewData...`, handshake y publicacion MQTT.
 
 La interfaz principal queda disponible en `http://localhost:8000`.
 
@@ -24,7 +24,8 @@ docker-compose.yml   -> infraestructura principal
 .env                 -> variables locales del proyecto
 .env.example         -> plantilla de variables
 brain/               -> servicio web y logica de alertas
-simulator.py         -> emisor de eventos de prueba
+simulator.py         -> simulador PLC realista y emisor MQTT
+plc_gateway/         -> adapter PLC/simulador hacia MQTT
 db_init/init.sql     -> inicializacion de la base de datos
 ```
 
@@ -247,7 +248,7 @@ docker compose logs -f broker db cerebro
 
 ## 6. Preparar el entorno Python del simulador
 
-El simulador se ejecuta fuera de Docker y publica eventos a `localhost:1883`.
+El simulador se ejecuta fuera de Docker y publica eventos a `localhost:1883`. Usa como fuente primaria `plc_reader_y_app/WeldParameters.db` y como fallback el CSV historico incluido en esa misma carpeta.
 
 ### Linux
 
@@ -299,6 +300,18 @@ python simulator.py
 ```
 
 El simulador enviara soldaduras al broker MQTT y la interfaz empezara a reflejar actividad, logs y alertas.
+
+Opciones utiles:
+
+```bash
+python simulator.py --limit 100
+python simulator.py --speed 8
+python simulator.py --timestamp-mode historical
+```
+
+- `--limit` emite una cantidad fija de lecturas y termina.
+- `--speed` acelera el ritmo historico.
+- `--timestamp-mode historical` conserva timestamps historicos; por defecto usa tiempo actual para que el dashboard de hoy muestre actividad.
 
 ## 8. Comandos utiles
 
@@ -354,6 +367,27 @@ sudo systemctl start docker
 Windows:
 - abre Docker Desktop y espera a que termine de iniciar
 - valida que WSL 2 este habilitado
+
+### Permiso denegado al usar Docker en Linux
+
+Si aparece:
+
+```text
+permission denied while trying to connect to the docker API
+```
+
+agrega tu usuario al grupo `docker` y abre una terminal nueva:
+
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+Luego valida:
+
+```bash
+docker compose ps
+```
 
 ### `docker compose` no existe
 

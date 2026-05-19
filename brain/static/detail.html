@@ -4,10 +4,8 @@
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>WeldGuard AI - Detalle de alerta</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <script>
+        window.tailwind = window.tailwind || {};
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -33,6 +31,9 @@
             }
         };
     </script>
+    <script async src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="/static/app.css" rel="stylesheet">
     <script defer src="/static/detail.js"></script>
 </head>
@@ -118,12 +119,12 @@
                     <div class="flex items-center justify-between px-6 py-5">
                         <div>
                             <h2 class="font-headline text-xl font-extrabold">Firma de telemetria</h2>
-                            <p class="mt-1 text-sm text-on-surface-variant">Voltaje por soldadura con marcadores de anomalia.</p>
+                            <p class="mt-1 text-sm text-on-surface-variant">Amperaje por soldadura con marcadores de anomalia.</p>
                         </div>
                         <div class="flex items-center gap-5">
                             <div class="flex items-center gap-2">
                                 <div class="h-3 w-3 rounded-full bg-primary-container"></div>
-                                <span class="text-xs font-semibold text-on-surface">Voltaje</span>
+                                <span class="text-xs font-semibold text-on-surface">Amps</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 <div class="h-3 w-3 rounded-full bg-tertiary"></div>
@@ -151,10 +152,10 @@
                                 <tr>
                                     <th class="px-6 py-4 font-bold">Soldadura</th>
                                     <th class="px-6 py-4 font-bold">Hora</th>
-                                    <th class="px-6 py-4 font-bold">Voltaje</th>
-                                    <th class="px-6 py-4 font-bold">Corriente</th>
-                                    <th class="px-6 py-4 font-bold">Presion</th>
-                                    <th class="px-6 py-4 font-bold">Tiempo</th>
+                                    <th class="px-6 py-4 font-bold">Distancia</th>
+                                    <th class="px-6 py-4 font-bold">Fuerza</th>
+                                    <th class="px-6 py-4 font-bold">Amps</th>
+                                    <th class="px-6 py-4 font-bold">Volts</th>
                                     <th class="px-6 py-4 font-bold">Puntaje</th>
                                     <th class="px-6 py-4 font-bold">Estado</th>
                                 </tr>

@@ -14,10 +14,20 @@ CREATE TABLE IF NOT EXISTS weld_events (
     line_id           VARCHAR(50)   NOT NULL,
     station_code      VARCHAR(50)   NOT NULL REFERENCES stations(station_code),
     pallet_id         VARCHAR(50)   NOT NULL,
+    pallet_run_id     VARCHAR(120),
     weld_id           INTEGER       NOT NULL,
     source_type       VARCHAR(30)   NOT NULL,
     source_timestamp  TIMESTAMPTZ   NOT NULL,
     received_at       TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    distancia         NUMERIC(8, 3),
+    fuerza            NUMERIC(8, 2),
+    ampers            NUMERIC(8, 2),
+    volts             NUMERIC(8, 2),
+    watts             NUMERIC(8, 2),
+    real_station      VARCHAR(50),
+    schedule          VARCHAR(10),
+    plc_ip            VARCHAR(50),
+    electrode_count   VARCHAR(50),
     voltaje           NUMERIC(6, 2) NOT NULL,
     corriente         NUMERIC(8, 2),
     presion           NUMERIC(6, 2) NOT NULL,
@@ -37,6 +47,7 @@ CREATE TABLE IF NOT EXISTS alerts (
     line_id       VARCHAR(50)  NOT NULL,
     station_code  VARCHAR(50)  NOT NULL REFERENCES stations(station_code),
     pallet_id     VARCHAR(50)  NOT NULL,
+    pallet_run_id VARCHAR(120),
     weld_id       INTEGER      NOT NULL,
     status        VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
     title         VARCHAR(200) NOT NULL,
@@ -44,6 +55,30 @@ CREATE TABLE IF NOT EXISTS alerts (
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     resolved_at   TIMESTAMPTZ
 );
+
+CREATE INDEX IF NOT EXISTS idx_weld_events_station_time
+    ON weld_events (station_code, source_timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS idx_weld_events_line_time
+    ON weld_events (line_id, source_timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS idx_weld_events_line_status_time
+    ON weld_events (line_id, status, source_timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS idx_weld_events_line_station_time
+    ON weld_events (line_id, station_code, source_timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS idx_weld_events_pallet
+    ON weld_events (pallet_id, weld_id);
+
+CREATE INDEX IF NOT EXISTS idx_weld_events_pallet_run
+    ON weld_events (pallet_run_id, weld_id);
+
+CREATE INDEX IF NOT EXISTS idx_weld_events_status
+    ON weld_events (status, source_timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS idx_alerts_status
+    ON alerts (status, created_at DESC);
 
 INSERT INTO stations (station_code, line_id, node_label, display_name, station_order, weld_start, weld_end)
 VALUES

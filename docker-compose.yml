@@ -26,6 +26,9 @@ services:
       LINE_LABEL: ${LINE_LABEL:-Control de linea 1}
       OPERATOR_NAME: ${OPERATOR_NAME:-Operador 01}
       OPERATOR_LINE_LABEL: ${OPERATOR_LINE_LABEL:-Linea de soldadura alfa}
+      MODEL_DIR: /app/modelo
+    volumes:
+      - ./modelo:/app/modelo:ro
     ports:
       - "8000:8000"
     networks:

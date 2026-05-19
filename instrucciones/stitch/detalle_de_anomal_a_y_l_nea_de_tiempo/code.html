@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WeldGuard AI - Anomaly Detail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#005faf",
+                        "outline-variant": "#434652",
+                        "error": "#ffb4ab",
+                        "on-error-container": "#ffdad6",
+                        "surface": "#131313",
+                        "on-secondary-fixed": "#071e27",
+                        "surface-container-lowest": "#0e0e0e",
+                        "secondary-fixed": "#cfe6f2",
+                        "on-surface": "#e5e2e1",
+                        "surface-dim": "#131313",
+                        "on-tertiary": "#003731",
+                        "primary-fixed": "#d4e3ff",
+                        "surface-variant": "#353534",
+                        "on-primary-container": "#93beff",
+                        "on-secondary": "#1e333c",
+                        "primary-fixed-dim": "#a5c8ff",
+                        "on-surface-variant": "#c3c6d4",
+                        "on-tertiary-container": "#66cebe",
+                        "tertiary": "#70d8c8",
+                        "inverse-on-surface": "#313030",
+                        "surface-container": "#201f1f",
+                        "surface-tint": "#a5c8ff",
+                        "primary": "#a5c8ff",
+                        "secondary-fixed-dim": "#b4cad6",
+                        "background": "#131313",
+                        "error-container": "#93000a",
+                        "secondary-container": "#374c56",
+                        "on-primary-fixed": "#001c3a",
+                        "primary-container": "#004c8f",
+                        "surface-container-highest": "#353534",
+                        "on-tertiary-fixed": "#00201c",
+                        "on-secondary-container": "#a6bcc7",
+                        "secondary": "#b4cad6",
+                        "tertiary-container": "#00564d",
+                        "surface-container-high": "#2a2a2a",
+                        "tertiary-fixed-dim": "#70d8c8",
+                        "on-primary": "#00315f",
+                        "surface-bright": "#393939",
+                        "on-error": "#690005",
+                        "on-primary-fixed-variant": "#004786",
+                        "on-background": "#e5e2e1",
+                        "surface-container-low": "#1c1b1b",
+                        "inverse-surface": "#e5e2e1",
+                        "outline": "#8d909d",
+                        "on-tertiary-fixed-variant": "#005048",
+                        "tertiary-fixed": "#8df5e4",
+                        "on-secondary-fixed-variant": "#354a53"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .chart-grid {
+            background-image: linear-gradient(to right, rgba(67, 70, 82, 0.1) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(67, 70, 82, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .anomaly-line {
+            box-shadow: 0 0 10px #ffb4ab;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary/30">
+<div class="flex h-screen overflow-hidden">
+<!-- SideNavBar - Suppressed for focused detail view as per UX Goal (Task-Focused) -->
+<div class="flex flex-col flex-1 min-w-0 overflow-hidden">
+<!-- TopNavBar -->
+<nav class="flex justify-between items-center w-full px-6 h-16 border-b border-[#434652]/15 bg-[#131313] dark:bg-[#131313] font-['Space_Grotesk'] tracking-tight">
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 text-[#a5c8ff] hover:bg-[#2a2a2a] px-3 py-1.5 rounded transition-colors group">
+<span class="material-symbols-outlined text-xl">arrow_back</span>
+<span class="font-medium text-sm">Dashboard</span>
+</button>
+<div class="h-6 w-px bg-outline-variant/30"></div>
+<span class="text-2xl font-bold tracking-tighter text-[#a5c8ff]">WeldGuard AI</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 px-3 py-1 rounded-full bg-tertiary-container/20 border border-tertiary/20">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span class="text-tertiary text-xs font-bold tracking-wide uppercase">System Active</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 text-[#e5e2e1]/60 hover:bg-[#2a2a2a] rounded transition-colors">
+<span class="material-symbols-outlined">schedule</span>
+</button>
+<button class="p-2 text-[#e5e2e1]/60 hover:bg-[#2a2a2a] rounded transition-colors">
+<span class="material-symbols-outlined">sensors</span>
+</button>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto p-6 space-y-6">
+<!-- Anomaly Summary Header (Asymmetric Layout) -->
+<section class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+<div class="md:col-span-8 space-y-2">
+<div class="flex items-center gap-3">
+<span class="bg-error-container text-on-error-container px-2 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase">Critical Anomaly Detected</span>
+<span class="text-outline text-xs">Event ID: WG-7729-AX</span>
+</div>
+<h1 class="text-4xl font-headline font-bold text-on-surface tracking-tight">
+                            Voltage Spike <span class="text-outline-variant">/</span> Station 04
+                        </h1>
+<p class="text-on-surface-variant max-w-2xl">
+                            Real-time monitoring detected a variance exceeding the 12% threshold during the secondary welding phase. Initial diagnostic suggests electrode degradation or material inconsistency on the incoming pallet.
+                        </p>
+</div>
+<div class="md:col-span-4 bg-surface-container-high rounded-xl p-4 flex flex-col gap-4 border-l-4 border-error shadow-xl">
+<div class="grid grid-cols-2 gap-4">
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Pallet ID</p>
+<p class="text-lg font-headline font-medium">PLT-8820-K</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Timestamp</p>
+<p class="text-lg font-headline font-medium text-primary">14:22:08:44</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Duration</p>
+<p class="text-lg font-headline font-medium">450ms</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Confidence</p>
+<p class="text-lg font-headline font-medium text-tertiary">98.4%</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Time Series Chart (Main Canvas) -->
+<section class="bg-surface-container-lowest rounded-xl overflow-hidden border border-outline-variant/10 relative h-[400px] chart-grid flex flex-col">
+<div class="flex justify-between items-center px-6 py-4 bg-surface-container-low/50 backdrop-blur-sm border-b border-outline-variant/5">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary shadow-[0_0_8px_rgba(165,200,255,0.5)]"></div>
+<span class="text-xs font-medium uppercase tracking-widest">Voltage (V)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-tertiary/40"></div>
+<span class="text-xs font-medium uppercase tracking-widest text-outline">Reference Baseline</span>
+</div>
+</div>
+<div class="flex gap-2">
+<span class="text-[10px] text-error font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">warning</span> ML MARKERS ACTIVE
+                            </span>
+</div>
+</div>
+<div class="flex-1 relative p-12 overflow-hidden">
+<!-- SVG Chart Background Mockup -->
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 1000 300">
+<!-- Gradient Fill -->
+<defs>
+<lineargradient id="lineGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#a5c8ff" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#a5c8ff" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,150 L100,145 L200,160 L300,140 L400,155 L450,50 L470,250 L490,40 L510,230 L530,150 L600,145 L700,155 L800,148 L900,152 L1000,150 L1000,300 L0,300 Z" fill="url(#lineGradient)"></path>
+<path d="M0,150 L100,145 L200,160 L300,140 L400,155 L450,50 L470,250 L490,40 L510,230 L530,150 L600,145 L700,155 L800,148 L900,152 L1000,150" fill="none" stroke="#a5c8ff" stroke-width="2.5"></path>
+</svg>
+<!-- ML Anomaly Markers (Vertical Ruby Red Lines) -->
+<div class="absolute inset-0 px-12 pointer-events-none">
+<!-- Anomaly Group -->
+<div class="absolute h-full w-px bg-error anomaly-line left-[45%] top-0"></div>
+<div class="absolute h-full w-px bg-error anomaly-line left-[47%] top-0"></div>
+<div class="absolute h-full w-px bg-error anomaly-line left-[49%] top-0"></div>
+<div class="absolute h-full w-px bg-error anomaly-line left-[51%] top-0"></div>
+<!-- Detail Label for Anomaly -->
+<div class="absolute left-[51%] top-4 ml-4 bg-error-container/90 backdrop-blur-md px-3 py-2 rounded border border-error/30">
+<p class="text-[10px] font-bold uppercase text-on-error-container">Variance Peak</p>
+<p class="text-xl font-headline font-bold text-white">45.2 V</p>
+</div>
+</div>
+<!-- Y-Axis Markers -->
+<div class="absolute left-4 inset-y-0 flex flex-col justify-between py-12 text-[10px] font-bold text-outline-variant font-headline">
+<span>60V</span>
+<span>40V</span>
+<span>20V</span>
+<span>0V</span>
+</div>
+</div>
+</section>
+<!-- Bottom Section: Raw Data Table -->
+<section class="grid grid-cols-1 gap-6">
+<div class="bg-surface-container-low rounded-xl overflow-hidden border border-outline-variant/10">
+<div class="px-6 py-4 border-b border-outline-variant/10 flex justify-between items-center">
+<h2 class="text-sm font-bold tracking-widest uppercase text-outline">Detection Window Raw Telemetry</h2>
+<button class="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-xs">download</span> EXPORT CSV
+                            </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-lowest text-[10px] font-bold text-outline-variant uppercase tracking-tighter">
+<tr>
+<th class="px-6 py-3">Timestamp (ms)</th>
+<th class="px-6 py-3">Voltage (V)</th>
+<th class="px-6 py-3">Current (A)</th>
+<th class="px-6 py-3">Gas Flow (L/min)</th>
+<th class="px-6 py-3">Anom Score</th>
+<th class="px-6 py-3">Status</th>
+</tr>
+</thead>
+<tbody class="text-sm">
+<tr class="bg-surface-container-lowest/30 hover:bg-surface-container-high/40 transition-colors">
+<td class="px-6 py-3 font-mono text-xs">14:22:08:438</td>
+<td class="px-6 py-3">18.4</td>
+<td class="px-6 py-3">120.2</td>
+<td class="px-6 py-3">15.0</td>
+<td class="px-6 py-3 text-outline">0.02</td>
+<td class="px-6 py-3"><span class="text-tertiary flex items-center gap-1 text-xs"><span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> Nominal</span></td>
+</tr>
+<tr class="bg-error-container/10 hover:bg-error-container/20 transition-colors border-l-2 border-error">
+<td class="px-6 py-3 font-mono text-xs">14:22:08:440</td>
+<td class="px-6 py-3 font-bold text-error">42.5</td>
+<td class="px-6 py-3">118.9</td>
+<td class="px-6 py-3">14.9</td>
+<td class="px-6 py-3 text-error">0.98</td>
+<td class="px-6 py-3"><span class="text-error flex items-center gap-1 text-xs font-bold uppercase"><span class="w-1.5 h-1.5 rounded-full bg-error"></span> Anomaly</span></td>
+</tr>
+<tr class="bg-error-container/5 hover:bg-error-container/20 transition-colors border-l-2 border-error/50">
+<td class="px-6 py-3 font-mono text-xs">14:22:08:442</td>
+<td class="px-6 py-3 font-bold text-error">45.2</td>
+<td class="px-6 py-3">119.1</td>
+<td class="px-6 py-3">15.0</td>
+<td class="px-6 py-3 text-error">0.99</td>
+<td class="px-6 py-3"><span class="text-error flex items-center gap-1 text-xs font-bold uppercase"><span class="w-1.5 h-1.5 rounded-full bg-error"></span> Anomaly</span></td>
+</tr>
+<tr class="bg-surface-container-lowest/30 hover:bg-surface-container-high/40 transition-colors">
+<td class="px-6 py-3 font-mono text-xs">14:22:08:444</td>
+<td class="px-6 py-3">22.1</td>
+<td class="px-6 py-3">122.5</td>
+<td class="px-6 py-3">15.1</td>
+<td class="px-6 py-3 text-outline">0.45</td>
+<td class="px-6 py-3"><span class="text-secondary-fixed-dim flex items-center gap-1 text-xs"><span class="w-1.5 h-1.5 rounded-full bg-secondary-fixed-dim"></span> Warning</span></td>
+</tr>
+<tr class="bg-surface-container-lowest/30 hover:bg-surface-container-high/40 transition-colors">
+<td class="px-6 py-3 font-mono text-xs">14:22:08:446</td>
+<td class="px-6 py-3">18.6</td>
+<td class="px-6 py-3">120.4</td>
+<td class="px-6 py-3">15.0</td>
+<td class="px-6 py-3 text-outline">0.05</td>
+<td class="px-6 py-3"><span class="text-tertiary flex items-center gap-1 text-xs"><span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> Nominal</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</main>
+<!-- Status Footer -->
+<footer class="h-10 bg-surface-container-lowest border-t border-outline-variant/10 px-6 flex items-center justify-between">
+<div class="flex items-center gap-4 text-[10px] font-bold text-outline uppercase tracking-widest">
+<span>Alpha Line Connection: 100%</span>
+<span class="w-px h-3 bg-outline-variant/30"></span>
+<span>Model: WeldNet-v4.2-Industrial</span>
+</div>
+<div class="text-[10px] font-mono text-outline-variant">
+                    Node: S04-B02-H01
+                </div>
+</footer>
+</div>
+</div>
+</body></html>

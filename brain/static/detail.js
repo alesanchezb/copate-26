@@ -26,14 +26,18 @@ function renderTelemetryRow(item, currentEventId) {
     const when = formatDateTime(item.source_timestamp);
     const isActive = item.event_id === currentEventId;
     const isAlert = item.status === "MALO";
+    const distancia = item.distancia == null ? "--" : Number(item.distancia).toFixed(3);
+    const fuerza = item.fuerza == null ? "--" : Number(item.fuerza).toFixed(1);
+    const amps = item.ampers == null ? item.corriente : item.ampers;
+    const volts = item.volts == null ? item.voltaje : item.volts;
     return `
         <tr class="${isAlert ? "bg-error-container/5 border-l-2 border-error/50" : "bg-surface-lowest/30"} ${isActive ? "ring-1 ring-primary/20" : ""} hover:bg-surface-high/40 transition-colors">
             <td class="px-6 py-3 font-mono text-xs">${item.weld_id}</td>
             <td class="px-6 py-3 font-mono text-xs">${when.short}</td>
-            <td class="px-6 py-3 ${isAlert ? "font-bold text-primary-container" : ""}">${Number(item.voltaje || 0).toFixed(2)}</td>
-            <td class="px-6 py-3">${item.corriente == null ? "--" : Number(item.corriente).toFixed(2)}</td>
-            <td class="px-6 py-3">${Number(item.presion || 0).toFixed(2)}</td>
-            <td class="px-6 py-3">${item.tiempo_ms == null ? "--" : Number(item.tiempo_ms).toFixed(0)}</td>
+            <td class="px-6 py-3">${distancia}</td>
+            <td class="px-6 py-3">${fuerza}</td>
+            <td class="px-6 py-3 ${isAlert ? "font-bold text-primary-container" : ""}">${amps == null ? "--" : Number(amps).toFixed(2)}</td>
+            <td class="px-6 py-3">${volts == null ? "--" : Number(volts).toFixed(2)}</td>
             <td class="px-6 py-3 ${isAlert ? "text-primary-container" : "text-outline"}">${Number(item.anomaly_score || 0).toFixed(2)}</td>
             <td class="px-6 py-3">
                 <span class="inline-flex items-center gap-1 text-xs font-bold uppercase ${pointStatusClass(item)}">
@@ -54,7 +58,7 @@ function renderChart(items) {
         return;
     }
 
-    const values = items.map((item) => Number(item.voltaje || 0));
+    const values = items.map((item) => Number(item.ampers == null ? item.voltaje || 0 : item.ampers));
     const min = Math.min(...values);
     const max = Math.max(...values);
     const padding = Math.max((max - min) * 0.2, 1);
@@ -65,7 +69,8 @@ function renderChart(items) {
 
     const points = items.map((item, index) => {
         const x = (index / Math.max(items.length - 1, 1)) * width;
-        const y = height - ((Number(item.voltaje || 0) - low) / (high - low || 1)) * height;
+        const value = Number(item.ampers == null ? item.voltaje || 0 : item.ampers);
+        const y = height - ((value - low) / (high - low || 1)) * height;
         return { x, y, item };
     });
 
@@ -80,7 +85,7 @@ function renderChart(items) {
         `)
         .join("");
 
-    const labels = [high, (high + low) / 2, low].map((value) => `<span>${value.toFixed(1)}V</span>`).join("");
+    const labels = [high, (high + low) / 2, low].map((value) => `<span>${value.toFixed(1)}</span>`).join("");
     yAxis.innerHTML = labels;
 
     svg.innerHTML = `
@@ -98,14 +103,19 @@ function renderChart(items) {
 
 async function loadAlertDetail() {
     const alertId = readAlertId();
-    const response = await fetch(`/api/alerts/${alertId}`);
-    if (!response.ok) {
+    let data;
+    try {
+        const response = await fetch(`/api/alerts/${alertId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        data = await response.json();
+    } catch (error) {
         document.getElementById("detail-title").textContent = "Alerta no encontrada";
-        document.getElementById("detail-message").textContent = "No fue posible recuperar el detalle de esta alerta.";
+        document.getElementById("detail-message").textContent = `No fue posible recuperar el detalle de esta alerta: ${error.message}`;
         return;
     }
 
-    const data = await response.json();
     const alert = data.alert;
     const when = formatDateTime(alert.source_timestamp);
 
