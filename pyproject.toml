@@ -1,0 +1,15 @@
+[project]
+name = "copa-te"
+version = "0.1.0"
+description = "Sistema de monitoreo de soldadura con simulador PLC y adapter MQTT"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26.0",
+    "paho-mqtt>=2.0.0",
+]
+
+[project.optional-dependencies]
+plc = [
+    "pylogix>=1.0.5",
+]

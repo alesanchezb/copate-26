@@ -7,9 +7,8 @@ RUN pip install --no-cache-dir \
     uvicorn \
     paho-mqtt \
     psycopg2-binary \
-    joblib \
     numpy \
-    scikit-learn==1.5.2
+    onnxruntime
 
 COPY . .
 

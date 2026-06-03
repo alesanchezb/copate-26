@@ -31,11 +31,11 @@
             }
         };
     </script>
-    <script async src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="/static/app.css" rel="stylesheet">
-    <script defer src="/static/detail.js"></script>
+    <link href="/static/app.css?v=ui-refactor-20260529-2" rel="stylesheet">
+    <script defer src="/static/detail.js?v=ui-refactor-20260529-2"></script>
 </head>
 <body class="app-shell bg-background text-on-surface">
     <div class="flex h-screen overflow-hidden">
@@ -77,9 +77,9 @@
                     <div class="h-5 w-px bg-outline-variant"></div>
                     <span class="font-headline text-2xl font-extrabold tracking-tight text-on-surface">Detalle de alerta</span>
                 </div>
-                <div class="status-chip flex items-center gap-2 px-3 py-1.5">
-                    <span class="material-symbols-outlined text-sm text-primary-container">sensors</span>
-                    <span class="text-xs font-bold">Sistema activo</span>
+                <div class="status-chip flex items-center gap-2 px-3 py-1.5" id="telemetry-chip">
+                    <span class="material-symbols-outlined text-sm" id="telemetry-icon">hourglass_empty</span>
+                    <span class="text-xs font-bold" id="telemetry-label">Esperando datos</span>
                 </div>
             </header>
 
@@ -87,16 +87,16 @@
                 <section class="grid grid-cols-1 gap-6 xl:grid-cols-12 xl:items-start">
                     <div class="xl:col-span-8 space-y-3">
                         <div class="flex items-center gap-3">
-                            <span class="rounded-full bg-primary-container px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white">Anomalia detectada</span>
+                            <span class="rounded-full bg-primary-container px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white">MALO detectado</span>
                             <span class="text-xs font-semibold text-on-surface-variant" id="detail-alert-id">Alerta</span>
                         </div>
-                        <h1 class="font-headline text-4xl font-extrabold tracking-tight" id="detail-title">Anomalia detectada</h1>
+                        <h1 class="font-headline text-4xl font-extrabold tracking-tight" id="detail-title">MALO detectado</h1>
                         <p class="max-w-3xl text-base text-on-surface-variant" id="detail-message"></p>
                     </div>
                     <div class="surface-panel rounded-2xl p-5 card-shadow xl:col-span-4">
                         <div class="grid grid-cols-2 gap-5">
                             <div>
-                                <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Pallet</p>
+                                <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Pallet run</p>
                                 <p class="mt-1 font-headline text-xl font-extrabold" id="detail-pallet">-</p>
                             </div>
                             <div>
@@ -104,12 +104,12 @@
                                 <p class="mt-1 text-sm font-semibold text-primary" id="detail-timestamp">-</p>
                             </div>
                             <div>
-                                <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Duracion</p>
-                                <p class="mt-1 font-headline text-xl font-extrabold" id="detail-duration">-</p>
+                                <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Schedule</p>
+                                <p class="mt-1 font-headline text-xl font-extrabold" id="detail-schedule">-</p>
                             </div>
                             <div>
-                                <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Confianza</p>
-                                <p class="mt-1 font-headline text-xl font-extrabold text-primary-container" id="detail-confidence">-</p>
+                                <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Modelo</p>
+                                <p class="mt-1 font-headline text-xl font-extrabold text-primary-container" id="detail-model-level">-</p>
                             </div>
                         </div>
                     </div>
@@ -119,12 +119,12 @@
                     <div class="flex items-center justify-between px-6 py-5">
                         <div>
                             <h2 class="font-headline text-xl font-extrabold">Firma de telemetria</h2>
-                            <p class="mt-1 text-sm text-on-surface-variant">Amperaje por soldadura con marcadores de anomalia.</p>
+                            <p class="mt-1 text-sm text-on-surface-variant">Watts por soldadura con marcadores MALO.</p>
                         </div>
                         <div class="flex items-center gap-5">
                             <div class="flex items-center gap-2">
                                 <div class="h-3 w-3 rounded-full bg-primary-container"></div>
-                                <span class="text-xs font-semibold text-on-surface">Amps</span>
+                                <span class="text-xs font-semibold text-on-surface">Watts</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 <div class="h-3 w-3 rounded-full bg-tertiary"></div>
@@ -151,12 +151,15 @@
                             <thead class="bg-surface-low text-[10px] uppercase tracking-widest text-on-surface-variant">
                                 <tr>
                                     <th class="px-6 py-4 font-bold">Soldadura</th>
+                                    <th class="px-6 py-4 font-bold">Schedule</th>
                                     <th class="px-6 py-4 font-bold">Hora</th>
                                     <th class="px-6 py-4 font-bold">Distancia</th>
                                     <th class="px-6 py-4 font-bold">Fuerza</th>
+                                    <th class="px-6 py-4 font-bold">Watts</th>
                                     <th class="px-6 py-4 font-bold">Amps</th>
                                     <th class="px-6 py-4 font-bold">Volts</th>
                                     <th class="px-6 py-4 font-bold">Puntaje</th>
+                                    <th class="px-6 py-4 font-bold">Modelo</th>
                                     <th class="px-6 py-4 font-bold">Estado</th>
                                 </tr>
                             </thead>

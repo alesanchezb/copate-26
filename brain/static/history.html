@@ -31,11 +31,11 @@
             }
         };
     </script>
-    <script async src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="/static/app.css" rel="stylesheet">
-    <script defer src="/static/history.js"></script>
+    <link href="/static/app.css?v=ui-refactor-20260529-2" rel="stylesheet">
+    <script defer src="/static/history.js?v=ui-refactor-20260529-2"></script>
 </head>
 <body class="app-shell bg-background text-on-surface">
     <div class="flex h-screen overflow-hidden">
@@ -53,6 +53,10 @@
                 <a class="nav-item nav-item-active flex items-center gap-3 px-4 py-3 text-sm font-semibold" href="/history">
                     <span class="material-symbols-outlined">history</span>
                     Historial
+                </a>
+                <a class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors" href="/analytics">
+                    <span class="material-symbols-outlined">bar_chart</span>
+                    Analitica
                 </a>
             </nav>
 
@@ -72,17 +76,17 @@
                 <div class="flex items-center gap-4">
                     <h1 class="font-headline text-2xl font-extrabold tracking-tight text-on-surface">Historial</h1>
                     <div class="h-5 w-px bg-outline-variant"></div>
-                    <span class="text-sm font-semibold text-on-surface-variant">Registros analiticos</span>
+                    <span class="text-sm font-semibold text-on-surface-variant">Registros historicos</span>
                 </div>
-                <div class="status-chip flex items-center gap-2 px-3 py-1.5">
-                    <span class="material-symbols-outlined text-sm text-primary-container">sensors</span>
-                    <span class="text-xs font-bold">Sistema activo</span>
+                <div class="status-chip flex items-center gap-2 px-3 py-1.5" id="telemetry-chip">
+                    <span class="material-symbols-outlined text-sm" id="telemetry-icon">hourglass_empty</span>
+                    <span class="text-xs font-bold" id="telemetry-label">Esperando datos</span>
                 </div>
             </header>
 
-            <div class="custom-scrollbar flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
-                <div class="surface-panel rounded-2xl p-6 card-shadow">
-                    <form class="flex flex-wrap items-end gap-5" id="history-filters">
+            <div class="custom-scrollbar flex-1 overflow-y-auto p-4 lg:p-5 space-y-4">
+                <div class="surface-panel rounded-2xl p-4 card-shadow">
+                    <form class="flex flex-wrap items-end gap-3" id="history-filters">
                         <div class="min-w-[170px] flex-1 space-y-2">
                             <label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Fecha inicial</label>
                             <input class="w-full rounded-xl border-none bg-surface-low px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary-container/30" id="date-from" type="date">
@@ -92,8 +96,8 @@
                             <input class="w-full rounded-xl border-none bg-surface-low px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary-container/30" id="date-to" type="date">
                         </div>
                         <div class="min-w-[160px] space-y-2">
-                            <label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Pallet</label>
-                            <input class="w-full rounded-xl border-none bg-surface-low px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary-container/30" id="pallet-filter" placeholder="PALLET_1000" type="text">
+                            <label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Pallet / run</label>
+                            <input class="w-full rounded-xl border-none bg-surface-low px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary-container/30" id="pallet-filter" placeholder="13-20260210..." type="text">
                         </div>
                         <div class="min-w-[160px] space-y-2">
                             <label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Estacion</label>
@@ -120,18 +124,19 @@
                     <table class="w-full border-collapse text-left">
                         <thead>
                             <tr class="bg-surface-low text-[10px] uppercase tracking-widest text-on-surface-variant">
-                                <th class="px-6 py-4 font-bold">Fecha y hora</th>
-                                <th class="px-6 py-4 font-bold">Pallet</th>
-                                <th class="px-6 py-4 font-bold">Estacion</th>
-                                <th class="px-6 py-4 text-right font-bold">Amps</th>
-                                <th class="px-6 py-4 text-right font-bold">Volts</th>
-                                <th class="px-6 py-4 text-center font-bold">Estado</th>
-                                <th class="px-6 py-4 text-right font-bold">Accion</th>
+                                <th class="px-4 py-3 font-bold">Fecha y hora</th>
+                                <th class="px-4 py-3 font-bold">Run</th>
+                                <th class="px-4 py-3 font-bold">Estacion</th>
+                                <th class="px-4 py-3 font-bold">Schedule</th>
+                                <th class="px-4 py-3 font-bold">Parametros PLC</th>
+                                <th class="px-4 py-3 font-bold">Modelo</th>
+                                <th class="px-4 py-3 text-center font-bold">Estado</th>
+                                <th class="px-4 py-3 text-right font-bold">Accion</th>
                             </tr>
                         </thead>
                         <tbody id="history-table-body"></tbody>
                     </table>
-                    <div class="flex items-center justify-between bg-surface-low px-6 py-4">
+                    <div class="flex items-center justify-between bg-surface-low px-6 py-3">
                         <p class="text-[11px] font-semibold text-on-surface-variant" id="pagination-summary">Mostrando 0 registros</p>
                         <div class="flex items-center gap-2">
                             <button class="rounded-xl bg-surface-lowest p-2 text-on-surface-variant transition-colors hover:text-primary disabled:opacity-40" id="prev-page" type="button">
@@ -155,7 +160,7 @@
                         <p class="mt-2 font-headline text-3xl font-extrabold text-tertiary" id="summary-success">0%</p>
                     </div>
                     <div class="surface-panel rounded-2xl p-5 card-shadow">
-                        <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Errores</p>
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">MALO</p>
                         <p class="mt-2 font-headline text-3xl font-extrabold text-primary-container" id="summary-errors">0</p>
                     </div>
                     <div class="surface-panel rounded-2xl p-5 card-shadow">

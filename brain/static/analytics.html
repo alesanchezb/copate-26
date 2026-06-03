@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>WeldGuard AI - Analitica</title>
+    <script>
+        window.tailwind = window.tailwind || {};
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        background: "#f9f9f9",
+                        surface: "#f9f9f9",
+                        "surface-low": "#f3f3f3",
+                        "surface-lowest": "#ffffff",
+                        "surface-high": "#eeeeee",
+                        primary: "#8d4f00",
+                        "primary-container": "#f28c00",
+                        tertiary: "#006495",
+                        "tertiary-container": "#cbe6ff",
+                        error: "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        outline: "#887362",
+                        "outline-variant": "#dbc2ae",
+                        "on-surface": "#1a1c1c",
+                        "on-surface-variant": "#554334"
+                    }
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/static/app.css?v=analytics-model-slots-20260602" rel="stylesheet">
+    <script defer src="/static/analytics.js?v=analytics-model-slots-20260602"></script>
+</head>
+<body class="app-shell bg-background text-on-surface">
+    <div class="flex h-screen overflow-hidden">
+        <aside class="app-sidebar hidden md:flex flex-col px-4 py-6">
+            <div class="mb-8 px-4">
+                <h2 class="font-headline text-lg font-extrabold text-on-surface">WeldGuard AI</h2>
+                <p class="mt-1 text-sm font-medium text-on-surface-variant" id="line-label-sidebar">Control de linea 1</p>
+            </div>
+
+            <nav class="flex-1 space-y-2">
+                <a class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors" href="/">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    Panel
+                </a>
+                <a class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors" href="/history">
+                    <span class="material-symbols-outlined">history</span>
+                    Historial
+                </a>
+                <a class="nav-item nav-item-active flex items-center gap-3 px-4 py-3 text-sm font-semibold" href="/analytics">
+                    <span class="material-symbols-outlined">bar_chart</span>
+                    Analitica
+                </a>
+            </nav>
+
+            <div class="mt-auto rounded-xl bg-surface-lowest p-4 card-shadow">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container/15 text-sm font-bold text-primary">OP</div>
+                    <div>
+                        <p class="text-sm font-bold text-on-surface" id="operator-name">Operador 01</p>
+                        <p class="text-xs text-on-surface-variant" id="operator-line-label">Linea de soldadura alfa</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex min-w-0 flex-1 flex-col overflow-hidden">
+            <header class="app-topbar flex h-16 items-center justify-between px-6">
+                <div class="flex items-center gap-4">
+                    <h1 class="font-headline text-2xl font-extrabold tracking-tight text-on-surface">Analitica</h1>
+                    <div class="h-5 w-px bg-outline-variant"></div>
+                    <span class="text-sm font-semibold text-on-surface-variant" id="window-label">Hoy / turno actual</span>
+                </div>
+                <div class="status-chip flex items-center gap-2 px-3 py-1.5" id="telemetry-chip">
+                    <span class="material-symbols-outlined text-sm" id="telemetry-icon">hourglass_empty</span>
+                    <span class="text-xs font-bold" id="telemetry-label">Esperando datos</span>
+                </div>
+            </header>
+
+            <div class="custom-scrollbar flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+                <section class="grid grid-cols-1 gap-5 xl:grid-cols-4" id="station-error-charts"></section>
+
+                <section class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                    <div class="surface-panel rounded-2xl p-6 card-shadow">
+                        <div class="mb-5 flex items-center justify-between">
+                            <h2 class="font-headline text-xl font-extrabold">MALO por hora</h2>
+                            <span class="text-xs font-semibold text-on-surface-variant">Hora local</span>
+                        </div>
+                        <div class="h-72" id="time-series-chart"></div>
+                    </div>
+
+                    <div class="surface-panel rounded-2xl p-6 card-shadow">
+                        <div class="mb-5 flex items-center justify-between">
+                            <h2 class="font-headline text-xl font-extrabold">Distribucion MALO</h2>
+                            <span class="text-xs font-semibold text-on-surface-variant">CleaNet</span>
+                        </div>
+                        <div class="h-72" id="model-distribution-chart"></div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

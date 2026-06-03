@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 import uuid
 from datetime import datetime
@@ -17,6 +18,9 @@ from .mapping import (
 )
 from .run_tracker import PalletRunTracker
 from .sources import HERMOSILLO_TZ
+
+
+log = logging.getLogger(__name__)
 
 
 class JsonPublisher(Protocol):
@@ -77,29 +81,38 @@ class PlcMqttAdapter:
 
         for station in STATION_MAPPINGS:
             for schedule in SCHEDULE_ORDER:
-                flag = flag_tag(schedule, station.plc_station_index)
-                flag_key = (station.plc_ip, flag)
-                flag_value = self.tag_client.read(station.plc_ip, flag).Value
+                try:
+                    flag = flag_tag(schedule, station.plc_station_index)
+                    flag_key = (station.plc_ip, flag)
+                    flag_value = self._read_value(station.plc_ip, flag, required=False)
 
-                if flag_value != 1:
-                    self._processed_flags.discard(flag_key)
-                    continue
+                    if flag_value != 1:
+                        self._processed_flags.discard(flag_key)
+                        continue
 
-                if flag_key in self._processed_flags:
-                    continue
+                    if flag_key in self._processed_flags:
+                        continue
 
-                payload = self._build_payload(station, schedule, flag)
-                self.publisher.publish(self.topic, payload)
-                self._pulse_handshake(station.plc_ip, schedule, station.plc_station_index)
-                self._processed_flags.add(flag_key)
-                published.append(payload)
+                    payload = self._build_payload(station, schedule, flag)
+                    self.publisher.publish(self.topic, payload)
+                    self._pulse_handshake(station.plc_ip, schedule, station.plc_station_index)
+                    self._processed_flags.add(flag_key)
+                    published.append(payload)
+                except Exception as exc:
+                    log.warning(
+                        "No se pudo procesar lectura PLC %s %s en %s: %s",
+                        station.real_station,
+                        schedule,
+                        station.plc_ip,
+                        exc,
+                    )
 
         return published
 
     def _build_payload(self, station, schedule: str, flag: str) -> dict[str, Any]:
         tags = value_tags(schedule, station.plc_station_index)
         values = {
-            name: self.tag_client.read(station.plc_ip, tag).Value
+            name: self._read_value(station.plc_ip, tag)
             for name, tag in tags.items()
         }
         self._validate_values(values)
@@ -150,6 +163,17 @@ class PlcMqttAdapter:
         if not callable(getter):
             return {}
         return getter(plc_ip, flag)
+
+    def _read_value(self, plc_ip: str, tag: str, required: bool = True) -> Any:
+        result = self.tag_client.read(plc_ip, tag)
+        status = getattr(result, "Status", "Success")
+        if status != "Success":
+            message = f"Lectura fallida tag={tag} plc={plc_ip} status={status}"
+            if required:
+                raise RuntimeError(message)
+            log.debug(message)
+            return None
+        return getattr(result, "Value", None)
 
     def _pulse_handshake(self, plc_ip: str, schedule: str, plc_station_index: int) -> None:
         tag = handshake_tag(schedule, plc_station_index)

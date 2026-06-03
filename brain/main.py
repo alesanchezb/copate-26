@@ -12,6 +12,7 @@ from config import API_HOST, API_PORT, APP_NAME, MQTT_BROKER, MQTT_PORT, MQTT_TO
 from repository import (
     ensure_schema,
     fetch_alert_detail,
+    fetch_analytics_data,
     fetch_dashboard_data,
     fetch_history_data,
     normalize_payload,
@@ -25,6 +26,18 @@ app = FastAPI(title=APP_NAME)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 _mqtt_thread: threading.Thread | None = None
+
+
+@app.middleware("http")
+async def add_no_cache_headers(request, call_next):
+    response = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith(
+        ("/history", "/analytics", "/alerts", "/static")
+    ):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 
 class TelemetrySubscriber:
@@ -109,6 +122,11 @@ def api_history(
     )
 
 
+@app.get("/api/analytics")
+def api_analytics():
+    return fetch_analytics_data()
+
+
 @app.get("/api/alerts/{alert_id}")
 def api_alert_detail(alert_id: str):
     detail = fetch_alert_detail(alert_id)
@@ -125,6 +143,11 @@ def ui_dashboard():
 @app.get("/history", include_in_schema=False)
 def ui_history():
     return FileResponse(STATIC_DIR / "history.html")
+
+
+@app.get("/analytics", include_in_schema=False)
+def ui_analytics():
+    return FileResponse(STATIC_DIR / "analytics.html")
 
 
 @app.get("/alerts/{alert_id}", include_in_schema=False)

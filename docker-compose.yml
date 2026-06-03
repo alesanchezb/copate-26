@@ -26,9 +26,10 @@ services:
       LINE_LABEL: ${LINE_LABEL:-Control de linea 1}
       OPERATOR_NAME: ${OPERATOR_NAME:-Operador 01}
       OPERATOR_LINE_LABEL: ${OPERATOR_LINE_LABEL:-Linea de soldadura alfa}
-      MODEL_DIR: /app/modelo
+      ONNX_MODEL_DIR: /app/onnx_models
+      TELEMETRY_STALE_SECONDS: ${TELEMETRY_STALE_SECONDS:-30}
     volumes:
-      - ./modelo:/app/modelo:ro
+      - ./onnx_models:/app/onnx_models:ro
     ports:
       - "8000:8000"
     networks:

@@ -17,6 +17,7 @@ from config import (
     OPERATOR_LINE_LABEL,
     OPERATOR_NAME,
     STATIONS,
+    TELEMETRY_STALE_SECONDS,
     normalize_schedule,
     station_by_code,
     station_by_real_station,
@@ -27,6 +28,10 @@ from model import predict
 
 
 HISTORY_COUNT_CAP = 5000
+MODEL_ANALYTICS_SLOTS = {
+    ("station_3", "Sch1"): {"real_station": "150", "model_key": "150_Sch1"},
+    ("station_4", "Sch2"): {"real_station": "155", "model_key": "155_Sch2"},
+}
 
 _pool: Any | None = None
 _pool_lock = threading.Lock()
@@ -129,6 +134,11 @@ def ensure_schema() -> None:
                     confidence        NUMERIC(6, 4),
                     detection_source  VARCHAR(50)  NOT NULL,
                     detection_reason  TEXT,
+                    model_key         VARCHAR(80),
+                    model_level       VARCHAR(30),
+                    model_level_num   INTEGER,
+                    model_score       NUMERIC(14, 8),
+                    model_is_fallback BOOLEAN      NOT NULL DEFAULT FALSE,
                     raw_payload       JSONB        NOT NULL DEFAULT '{}'::jsonb
                 );
 
@@ -160,6 +170,11 @@ def ensure_schema() -> None:
                 ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS schedule VARCHAR(10);
                 ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS plc_ip VARCHAR(50);
                 ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS electrode_count VARCHAR(50);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS model_key VARCHAR(80);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS model_level VARCHAR(30);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS model_level_num INTEGER;
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS model_score NUMERIC(14, 8);
+                ALTER TABLE weld_events ADD COLUMN IF NOT EXISTS model_is_fallback BOOLEAN NOT NULL DEFAULT FALSE;
                 ALTER TABLE alerts ADD COLUMN IF NOT EXISTS pallet_run_id VARCHAR(120);
                 """
             )
@@ -328,6 +343,11 @@ def normalize_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "presion": round(presion, 2),
         "tiempo_ms": round(tiempo_ms, 2) if tiempo_ms is not None else None,
         "ml_result": ml_result,
+        "model_key": None,
+        "model_level": None,
+        "model_level_num": None,
+        "model_score": None,
+        "model_is_fallback": False,
         "raw_payload": payload,
     }
     return evaluate_detection(normalized)
@@ -343,10 +363,20 @@ def evaluate_detection(event: dict[str, Any]) -> dict[str, Any]:
         confidence = float(model_result.get("confidence") or anomaly_score)
         detection_source = model_result.get("source") or "ml_model"
         detection_reason = model_result.get("reason") or "Salida del modelo de deteccion"
+        event["model_key"] = model_result.get("model_key")
+        event["model_level"] = model_result.get("model_level")
+        event["model_level_num"] = model_result.get("model_level_num")
+        event["model_score"] = model_result.get("model_score", model_result.get("score"))
+        event["model_is_fallback"] = bool(model_result.get("model_is_fallback", False))
     else:
         detection_source = "rule_fallback"
         anomaly_score, is_anomaly, detection_reason = evaluate_rule_fallback(event)
         confidence = max(0.95 if is_anomaly else 0.08, min(anomaly_score, 0.99))
+        event["model_key"] = None
+        event["model_level"] = None
+        event["model_level_num"] = None
+        event["model_score"] = None
+        event["model_is_fallback"] = False
 
     event["is_anomaly"] = is_anomaly
     event["status"] = "MALO" if is_anomaly else "BUENO"
@@ -430,6 +460,11 @@ def persist_event(event: dict[str, Any]) -> bool:
                     confidence,
                     detection_source,
                     detection_reason,
+                    model_key,
+                    model_level,
+                    model_level_num,
+                    model_score,
+                    model_is_fallback,
                     raw_payload
                 )
                 VALUES (
@@ -460,6 +495,11 @@ def persist_event(event: dict[str, Any]) -> bool:
                     %(confidence)s,
                     %(detection_source)s,
                     %(detection_reason)s,
+                    %(model_key)s,
+                    %(model_level)s,
+                    %(model_level_num)s,
+                    %(model_score)s,
+                    %(model_is_fallback)s,
                     %(raw_payload)s
                 )
                 ON CONFLICT (event_id) DO NOTHING
@@ -498,20 +538,34 @@ def persist_event(event: dict[str, Any]) -> bool:
                         event["pallet_id"],
                         event["pallet_run_id"],
                         event["weld_id"],
-                        f"Anomalia detectada / {station.display_name}",
+                        f"MALO detectado / {station.display_name}",
                         f"{event['detection_reason']}. Pallet {event['pallet_id']}, soldadura {event['weld_id']}/8.",
                     ),
                 )
             else:
-                cur.execute(
-                    """
-                    UPDATE alerts
-                    SET status = 'RESOLVED', resolved_at = NOW()
-                    WHERE station_code = %s
-                      AND status = 'ACTIVE'
-                    """,
-                    (event["station_code"],),
-                )
+                if event.get("schedule"):
+                    cur.execute(
+                        """
+                        UPDATE alerts a
+                        SET status = 'RESOLVED', resolved_at = NOW()
+                        FROM weld_events e
+                        WHERE e.event_id = a.event_id
+                          AND a.station_code = %s
+                          AND e.schedule = %s
+                          AND a.status = 'ACTIVE'
+                        """,
+                        (event["station_code"], event["schedule"]),
+                    )
+                else:
+                    cur.execute(
+                        """
+                        UPDATE alerts
+                        SET status = 'RESOLVED', resolved_at = NOW()
+                        WHERE station_code = %s
+                          AND status = 'ACTIVE'
+                        """,
+                        (event["station_code"],),
+                    )
         conn.commit()
 
     return inserted
@@ -546,12 +600,20 @@ def fetch_dashboard_data() -> dict[str, Any]:
                     e.status,
                     e.source_timestamp,
                     e.voltaje,
+                    e.distancia,
+                    e.fuerza,
+                    e.watts,
                     e.ampers,
                     e.volts,
                     e.real_station,
                     e.schedule,
                     e.anomaly_score,
                     e.confidence,
+                    e.model_key,
+                    e.model_level,
+                    e.model_level_num,
+                    e.model_score,
+                    e.model_is_fallback,
                     a.alert_id,
                     a.title AS alert_title,
                     a.message AS alert_message
@@ -581,6 +643,63 @@ def fetch_dashboard_data() -> dict[str, Any]:
             cur.execute(
                 """
                 SELECT
+                    s.station_code,
+                    s.display_name,
+                    s.node_label,
+                    s.station_order,
+                    sch.schedule,
+                    e.event_id,
+                    e.pallet_id,
+                    e.pallet_run_id,
+                    e.weld_id,
+                    e.status,
+                    e.source_timestamp,
+                    e.distancia,
+                    e.fuerza,
+                    e.ampers,
+                    e.volts,
+                    e.watts,
+                    e.real_station,
+                    e.anomaly_score,
+                    e.confidence,
+                    e.model_key,
+                    e.model_level,
+                    e.model_level_num,
+                    e.model_score,
+                    e.model_is_fallback,
+                    a.alert_id,
+                    a.title AS alert_title,
+                    a.message AS alert_message
+                FROM stations s
+                CROSS JOIN (VALUES ('Sch1'), ('Sch2')) AS sch(schedule)
+                LEFT JOIN LATERAL (
+                    SELECT *
+                    FROM weld_events w
+                    WHERE w.station_code = s.station_code
+                      AND w.schedule = sch.schedule
+                    ORDER BY w.source_timestamp DESC
+                    LIMIT 1
+                ) e ON TRUE
+                LEFT JOIN LATERAL (
+                    SELECT alert_id, title, message
+                    FROM alerts al
+                    JOIN weld_events aw ON aw.event_id = al.event_id
+                    WHERE al.station_code = s.station_code
+                      AND aw.schedule = sch.schedule
+                      AND al.status = 'ACTIVE'
+                    ORDER BY al.created_at DESC
+                    LIMIT 1
+                ) a ON TRUE
+                WHERE s.line_id = %s
+                ORDER BY s.station_order, sch.schedule
+                """,
+                (LINE_ID,),
+            )
+            station_schedules = [serialize_row(row) for row in cur.fetchall()]
+
+            cur.execute(
+                """
+                SELECT
                     e.event_id,
                     e.pallet_id,
                     e.pallet_run_id,
@@ -598,6 +717,11 @@ def fetch_dashboard_data() -> dict[str, Any]:
                     e.schedule,
                     e.anomaly_score,
                     e.confidence,
+                    e.model_key,
+                    e.model_level,
+                    e.model_level_num,
+                    e.model_score,
+                    e.model_is_fallback,
                     e.detection_reason,
                     s.display_name AS station_name,
                     a.alert_id
@@ -614,6 +738,26 @@ def fetch_dashboard_data() -> dict[str, Any]:
 
             cur.execute(
                 """
+                SELECT MAX(source_timestamp) AS latest_source_timestamp
+                FROM weld_events
+                WHERE line_id = %s
+                """,
+                (LINE_ID,),
+            )
+            latest_row = cur.fetchone() or {}
+            latest_source_timestamp = latest_row.get("latest_source_timestamp")
+            if latest_source_timestamp is None:
+                latest_source_timestamp = datetime.now(timezone.utc)
+            elif latest_source_timestamp.tzinfo is None:
+                latest_source_timestamp = latest_source_timestamp.replace(tzinfo=timezone.utc)
+            latest_source_timestamp = latest_source_timestamp.astimezone(timezone.utc)
+            stats_window_start = latest_source_timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
+            stats_window_end = stats_window_start + timedelta(days=1)
+            throughput_window_start = latest_source_timestamp - timedelta(hours=8)
+            throughput_window_end = latest_source_timestamp + timedelta(seconds=1)
+
+            cur.execute(
+                """
                 SELECT
                     COUNT(*) AS total_welds,
                     COUNT(*) FILTER (WHERE is_anomaly) AS anomaly_count,
@@ -623,10 +767,10 @@ def fetch_dashboard_data() -> dict[str, Any]:
                     ) AS success_rate
                 FROM weld_events
                 WHERE line_id = %s
-                  AND source_timestamp >= CURRENT_DATE::timestamptz
-                  AND source_timestamp < (CURRENT_DATE + INTERVAL '1 day')::timestamptz
+                  AND source_timestamp >= %s
+                  AND source_timestamp < %s
                 """,
-                (LINE_ID,),
+                (LINE_ID, stats_window_start, stats_window_end),
             )
             stats = serialize_row(cur.fetchone() or {})
 
@@ -637,34 +781,91 @@ def fetch_dashboard_data() -> dict[str, Any]:
                     COUNT(*) AS welds
                 FROM weld_events
                 WHERE line_id = %s
-                  AND source_timestamp >= NOW() - INTERVAL '8 hours'
+                  AND source_timestamp >= %s
+                  AND source_timestamp < %s
                 GROUP BY 1
                 ORDER BY 1
                 """,
-                (LINE_ID,),
+                (LINE_ID, throughput_window_start, throughput_window_end),
             )
             throughput_rows = cur.fetchall()
 
             cur.execute(
                 """
-                SELECT alert_id, title, message
-                FROM alerts
-                WHERE line_id = %s
-                  AND status = 'ACTIVE'
-                ORDER BY created_at DESC
+                SELECT al.alert_id, al.title, al.message, e.schedule, e.station_code
+                FROM alerts al
+                JOIN weld_events e ON e.event_id = al.event_id
+                WHERE al.line_id = %s
+                  AND al.status = 'ACTIVE'
+                ORDER BY al.created_at DESC
                 LIMIT 1
                 """,
                 (LINE_ID,),
             )
             active_alert = cur.fetchone()
 
+            cur.execute(
+                """
+                SELECT
+                    received_at AS last_event_at,
+                    source_type AS last_source_type,
+                    plc_ip AS last_plc_ip,
+                    real_station AS last_real_station
+                FROM weld_events
+                WHERE line_id = %s
+                ORDER BY received_at DESC
+                LIMIT 1
+                """,
+                (LINE_ID,),
+            )
+            last_event_row = cur.fetchone() or {}
+
     throughput_map = {row["bucket"]: int(row["welds"]) for row in throughput_rows}
     buckets = []
-    now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    now = latest_source_timestamp.replace(minute=0, second=0, microsecond=0)
     for offset in range(7, -1, -1):
         hour = now - timedelta(hours=offset)
         label = hour.strftime("%H:00")
         buckets.append({"bucket": label, "welds": throughput_map.get(label, 0)})
+
+    last_event_at = last_event_row.get("last_event_at")
+    if last_event_at is None:
+        telemetry_status = {
+            "state": "waiting",
+            "label": "Esperando datos",
+            "source_type": None,
+            "source_label": None,
+            "last_event_at": None,
+            "seconds_since_last_event": None,
+            "stale_after_seconds": TELEMETRY_STALE_SECONDS,
+        }
+    else:
+        if last_event_at.tzinfo is None:
+            last_event_at = last_event_at.replace(tzinfo=timezone.utc)
+        seconds_since = max(
+            int((datetime.now(timezone.utc) - last_event_at.astimezone(timezone.utc)).total_seconds()),
+            0,
+        )
+        is_active = seconds_since <= TELEMETRY_STALE_SECONDS
+        source_type = last_event_row.get("last_source_type")
+        source_type_text = str(source_type or "").lower()
+        if "simulator" in source_type_text or "simulador" in source_type_text:
+            source_label = "Simulador"
+        elif "plc" in source_type_text:
+            source_label = "PLC"
+        else:
+            source_label = "Flujo"
+        telemetry_status = {
+            "state": "active" if is_active else "idle",
+            "label": f"{source_label} activo" if is_active else f"{source_label} sin flujo",
+            "source_type": source_type,
+            "source_label": source_label,
+            "plc_ip": last_event_row.get("last_plc_ip"),
+            "real_station": last_event_row.get("last_real_station"),
+            "last_event_at": last_event_at.isoformat(),
+            "seconds_since_last_event": seconds_since,
+            "stale_after_seconds": TELEMETRY_STALE_SECONDS,
+        }
 
     return {
         "metadata": {
@@ -673,6 +874,7 @@ def fetch_dashboard_data() -> dict[str, Any]:
             "operator_line_label": OPERATOR_LINE_LABEL,
         },
         "stations": stations,
+        "station_schedules": station_schedules,
         "recent_logs": recent_logs,
         "stats": {
             "total_welds": int(stats.get("total_welds") or 0),
@@ -680,6 +882,7 @@ def fetch_dashboard_data() -> dict[str, Any]:
             "success_rate": float(stats.get("success_rate") or 0),
             "throughput": buckets,
         },
+        "telemetry_status": telemetry_status,
         "active_alert": serialize_row(active_alert) if active_alert else None,
     }
 
@@ -703,8 +906,8 @@ def fetch_history_data(
         clauses.append("e.status = %s")
         params.append(status)
     if pallet_id:
-        clauses.append("e.pallet_id ILIKE %s")
-        params.append(f"%{pallet_id}%")
+        clauses.append("(e.pallet_id ILIKE %s OR e.pallet_run_id ILIKE %s)")
+        params.extend([f"%{pallet_id}%", f"%{pallet_id}%"])
     if date_from:
         clauses.append("e.source_timestamp >= %s::date")
         params.append(date_from)
@@ -755,6 +958,11 @@ def fetch_history_data(
                     e.real_station,
                     e.schedule,
                     e.status,
+                    e.model_key,
+                    e.model_level,
+                    e.model_level_num,
+                    e.model_score,
+                    e.model_is_fallback,
                     s.display_name AS station_name,
                     a.alert_id
                 FROM weld_events e
@@ -799,6 +1007,162 @@ def fetch_history_data(
     }
 
 
+def fetch_analytics_data() -> dict[str, Any]:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT MAX(source_timestamp) AS latest_source_timestamp
+                FROM weld_events
+                WHERE line_id = %s
+                """,
+                (LINE_ID,),
+            )
+            latest_row = cur.fetchone() or {}
+            latest_source_timestamp = latest_row.get("latest_source_timestamp")
+            if latest_source_timestamp is None:
+                latest_source_timestamp = datetime.now(timezone.utc)
+                latest_bucket = latest_source_timestamp.replace(minute=0, second=0, microsecond=0)
+                window_start = latest_bucket - timedelta(hours=23)
+                window_end = latest_bucket + timedelta(hours=1)
+                window_label = "Ultimas 24 horas"
+            else:
+                if latest_source_timestamp.tzinfo is None:
+                    latest_source_timestamp = latest_source_timestamp.replace(tzinfo=timezone.utc)
+                latest_source_timestamp = latest_source_timestamp.astimezone(timezone.utc)
+                latest_bucket = latest_source_timestamp.replace(minute=0, second=0, microsecond=0)
+                window_start = latest_bucket - timedelta(hours=23)
+                window_end = latest_bucket + timedelta(hours=1)
+                window_label = "Ultimas 24 horas con datos"
+
+            cur.execute(
+                """
+                SELECT
+                    s.station_code,
+                    s.display_name,
+                    s.station_order,
+                    sch.schedule,
+                    COUNT(e.event_id) AS observed_total,
+                    COUNT(e.event_id) FILTER (WHERE e.model_key IS NOT NULL) AS model_total,
+                    COUNT(e.event_id) FILTER (
+                        WHERE e.model_key IS NOT NULL AND e.is_anomaly
+                    ) AS malos
+                FROM stations s
+                CROSS JOIN (VALUES ('Sch1'), ('Sch2')) AS sch(schedule)
+                LEFT JOIN weld_events e
+                 ON e.station_code = s.station_code
+                 AND e.schedule = sch.schedule
+                 AND e.line_id = %s
+                 AND e.source_timestamp >= %s
+                 AND e.source_timestamp < %s
+                WHERE s.line_id = %s
+                GROUP BY s.station_code, s.display_name, s.station_order, sch.schedule
+                ORDER BY s.station_order, sch.schedule
+                """,
+                (LINE_ID, window_start, window_end, LINE_ID),
+            )
+            station_schedule_rows = [serialize_row(row) for row in cur.fetchall()]
+
+            cur.execute(
+                """
+                SELECT
+                    date_trunc('hour', source_timestamp) AS bucket_start,
+                    COUNT(*) FILTER (
+                        WHERE model_key IS NOT NULL AND is_anomaly
+                    ) AS malos,
+                    COUNT(*) FILTER (WHERE model_key IS NOT NULL) AS total
+                FROM weld_events
+                WHERE line_id = %s
+                  AND source_timestamp >= %s
+                  AND source_timestamp < %s
+                GROUP BY 1
+                ORDER BY 1
+                """,
+                (LINE_ID, window_start, window_end),
+            )
+            hourly_rows = cur.fetchall()
+
+    by_station: dict[str, dict[str, Any]] = {}
+    for row in station_schedule_rows:
+        schedule = row["schedule"]
+        slot = MODEL_ANALYTICS_SLOTS.get((row["station_code"], schedule))
+        station = by_station.setdefault(
+            row["station_code"],
+            {
+                "station_code": row["station_code"],
+                "display_name": row["display_name"],
+                "station_order": row["station_order"],
+                "schedules": {"Sch1": {"malos": 0, "total": 0}, "Sch2": {"malos": 0, "total": 0}},
+            },
+        )
+        station["schedules"][schedule] = {
+            "malos": int(row.get("malos") or 0),
+            "total": int(row.get("model_total") or 0),
+            "observed_total": int(row.get("observed_total") or 0),
+            "model_enabled": slot is not None,
+            "model_key": slot["model_key"] if slot else None,
+            "real_station": slot["real_station"] if slot else None,
+        }
+
+    hourly_map = {
+        row["bucket_start"].astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0): {
+            "malos": int(row.get("malos") or 0),
+            "total": int(row.get("total") or 0),
+        }
+        for row in hourly_rows
+    }
+    series = []
+    for index in range(24):
+        bucket_start = window_start + timedelta(hours=index)
+        bucket_start = bucket_start.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        series.append(
+            {
+                "bucket_start": bucket_start.isoformat(),
+                **hourly_map.get(bucket_start, {"malos": 0, "total": 0}),
+            }
+        )
+
+    distribution = []
+    total_model_malos = 0
+    for station in by_station.values():
+        for schedule_name, schedule_data in station["schedules"].items():
+            if not schedule_data.get("model_enabled"):
+                continue
+            malos = int(schedule_data.get("malos") or 0)
+            total_model_malos += malos
+            distribution.append(
+                {
+                    "station_code": station["station_code"],
+                    "display_name": station["display_name"],
+                    "station_order": station["station_order"],
+                    "schedule": schedule_name,
+                    "real_station": schedule_data["real_station"],
+                    "model_key": schedule_data["model_key"],
+                    "malos": malos,
+                    "total": int(schedule_data.get("total") or 0),
+                }
+            )
+
+    for item in distribution:
+        item["share"] = (
+            round(item["malos"] / total_model_malos, 4) if total_model_malos else 0
+        )
+
+    return {
+        "metadata": {
+            "line_label": LINE_LABEL,
+            "operator_name": OPERATOR_NAME,
+            "operator_line_label": OPERATOR_LINE_LABEL,
+            "window_label": window_label,
+            "window_start": window_start.isoformat(),
+            "window_end": window_end.isoformat(),
+        },
+        "station_schedule_errors": list(by_station.values()),
+        "error_time_series": series,
+        "model_error_distribution": distribution,
+    }
+
+
 def fetch_alert_detail(alert_id: str) -> dict[str, Any] | None:
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -832,6 +1196,11 @@ def fetch_alert_detail(alert_id: str) -> dict[str, Any] | None:
                     e.confidence,
                     e.detection_source,
                     e.detection_reason,
+                    e.model_key,
+                    e.model_level,
+                    e.model_level_num,
+                    e.model_score,
+                    e.model_is_fallback,
                     s.display_name AS station_name,
                     s.node_label
                 FROM alerts a
@@ -867,6 +1236,11 @@ def fetch_alert_detail(alert_id: str) -> dict[str, Any] | None:
                     e.tiempo_ms,
                     e.anomaly_score,
                     e.confidence,
+                    e.model_key,
+                    e.model_level,
+                    e.model_level_num,
+                    e.model_score,
+                    e.model_is_fallback,
                     e.status,
                     e.is_anomaly,
                     a.alert_id

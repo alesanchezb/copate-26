@@ -38,6 +38,11 @@ CREATE TABLE IF NOT EXISTS weld_events (
     confidence        NUMERIC(6, 4),
     detection_source  VARCHAR(50)   NOT NULL,
     detection_reason  TEXT,
+    model_key         VARCHAR(80),
+    model_level       VARCHAR(30),
+    model_level_num   INTEGER,
+    model_score       NUMERIC(14, 8),
+    model_is_fallback BOOLEAN       NOT NULL DEFAULT FALSE,
     raw_payload       JSONB         NOT NULL DEFAULT '{}'::jsonb
 );
 

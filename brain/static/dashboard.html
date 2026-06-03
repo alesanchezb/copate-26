@@ -31,11 +31,11 @@
             }
         };
     </script>
-    <script async src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="/static/app.css" rel="stylesheet">
-    <script defer src="/static/dashboard.js"></script>
+    <link href="/static/app.css?v=ui-refactor-20260529-2" rel="stylesheet">
+    <script defer src="/static/dashboard.js?v=ui-refactor-20260529-2"></script>
 </head>
 <body class="app-shell overflow-hidden bg-background text-on-surface">
     <div class="flex h-screen w-full">
@@ -53,6 +53,10 @@
                 <a class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors" href="/history">
                     <span class="material-symbols-outlined">history</span>
                     Historial
+                </a>
+                <a class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors" href="/analytics">
+                    <span class="material-symbols-outlined">bar_chart</span>
+                    Analitica
                 </a>
             </nav>
 
@@ -74,14 +78,14 @@
                     <div class="h-5 w-px bg-outline-variant"></div>
                     <span class="text-sm font-semibold text-on-surface-variant" id="line-label">Control de linea 1</span>
                 </div>
-                <div class="status-chip flex items-center gap-2 px-3 py-1.5">
-                    <span class="material-symbols-outlined text-sm text-primary-container">sensors</span>
-                    <span class="text-xs font-bold">Sistema activo</span>
+                <div class="status-chip flex items-center gap-2 px-3 py-1.5" id="telemetry-chip">
+                    <span class="material-symbols-outlined text-sm" id="telemetry-icon">sensors</span>
+                    <span class="text-xs font-bold" id="telemetry-label">Esperando datos</span>
                 </div>
             </header>
 
-            <div class="custom-scrollbar flex-1 overflow-y-auto p-6 lg:p-8">
-                <section class="mb-8">
+            <div class="custom-scrollbar flex-1 overflow-y-auto p-4 lg:p-5">
+                <section class="mb-5">
                     <div id="stations-grid" class="grid grid-cols-1 gap-5 xl:grid-cols-4"></div>
                 </section>
 
@@ -99,11 +103,13 @@
                                 <table class="w-full border-collapse text-left">
                                     <thead>
                                         <tr class="bg-surface-low text-[10px] uppercase tracking-widest text-on-surface-variant">
-                                            <th class="px-6 py-4 font-bold">Hora</th>
-                                            <th class="px-6 py-4 font-bold">Pallet</th>
-                                            <th class="px-6 py-4 font-bold">Estacion</th>
-                                            <th class="px-6 py-4 font-bold">Estado</th>
-                                            <th class="px-6 py-4 font-bold text-right">Accion</th>
+                                            <th class="px-4 py-3 font-bold">Hora</th>
+                                            <th class="px-4 py-3 font-bold">Run</th>
+                                            <th class="px-4 py-3 font-bold">Estacion</th>
+                                            <th class="px-4 py-3 font-bold">Schedule / Weld</th>
+                                            <th class="px-4 py-3 font-bold">Parametros PLC</th>
+                                            <th class="px-4 py-3 font-bold">Estado</th>
+                                            <th class="px-4 py-3 font-bold text-right">Accion</th>
                                         </tr>
                                     </thead>
                                     <tbody id="recent-logs-body"></tbody>
@@ -134,7 +140,7 @@
                                 </div>
                                 <div class="space-y-2">
                                     <div class="flex justify-between text-[11px] font-bold uppercase tracking-wider">
-                                        <span>Anomalias</span>
+                                        <span>MALO</span>
                                         <span class="text-primary-container" id="stat-anomalies">0</span>
                                     </div>
                                     <div class="h-2 w-full overflow-hidden rounded-full bg-surface-low">

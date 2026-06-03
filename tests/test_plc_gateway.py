@@ -89,7 +89,7 @@ class PlcGatewayTests(unittest.TestCase):
             tag_client=client,
             publisher=publisher,
             topic="fabrica/linea1/soldadura",
-            handshake_pulse_seconds=0,
+            handshake_pulse_seconds=0.01,
             timestamp_mode="historical",
         )
         producer = HistoricalPlcProducer(

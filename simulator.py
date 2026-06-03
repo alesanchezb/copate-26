@@ -24,12 +24,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--line-id", default="linea1", help="Identificador de linea")
     parser.add_argument(
         "--db-path",
-        default="plc_reader_y_app/WeldParameters.db",
+        default="data/WeldParameters.db",
         help="SQLite historico usado como fuente primaria",
     )
     parser.add_argument(
+        "--legacy-db-path",
+        default="references/planta/plc_reader_y_app/WeldParameters.db",
+        help="SQLite historico usado como fallback compatible",
+    )
+    parser.add_argument(
         "--csv-path",
-        default="plc_reader_y_app/WeldResults_10Feb_2026_24Feb_2026.csv",
+        default="references/planta/plc_reader_y_app/WeldResults_10Feb_2026_24Feb_2026.csv",
         help="CSV historico usado como fallback",
     )
     parser.add_argument(
@@ -65,6 +70,7 @@ def main() -> None:
 
     source = HistoricalWeldDataSource(
         db_path=Path(args.db_path),
+        legacy_db_path=Path(args.legacy_db_path),
         csv_path=Path(args.csv_path),
     )
     tag_client = SimulatedTagClient()

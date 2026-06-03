@@ -10,7 +10,7 @@
 
 ## Frontera PLC
 
-- `plc_reader_y_app/` es referencia real de planta, no dependencia directa de produccion del proyecto.
+- `references/planta/plc_reader_y_app/` es referencia real de planta, no dependencia directa de produccion del proyecto.
 - La frontera de integracion es un adapter MQTT separado que publica en `fabrica/linea1/soldadura`.
 - `brain` no debe leer tags PLC directamente; solo consume eventos MQTT normalizados.
 - El simulador debe usar tags y handshake tipo PLC:
@@ -31,18 +31,19 @@
 
 ## Datos historicos
 
-- Fuente primaria del simulador: `plc_reader_y_app/WeldParameters.db`.
-- Fallback portable: `plc_reader_y_app/WeldResults_10Feb_2026_24Feb_2026.csv`.
+- Fuente primaria local del simulador: `data/WeldParameters.db`.
+- Fallback compatible: `references/planta/plc_reader_y_app/WeldParameters.db`.
+- Fallback portable final: `references/planta/plc_reader_y_app/WeldResults_10Feb_2026_24Feb_2026.csv`.
 - El simulador reproduce ventanas historicas contiguas para conservar ritmo e intercalado real.
 - `PalletId` 0 o negativo se conserva como dato normal; no se filtra.
 
 ## Modelo ML
 
-- El hook de integracion vive en `brain/model.py` y carga artefactos `joblib` desde `MODEL_DIR` (default `/app/modelo`, montado read-only desde `./modelo`).
-- Registro por `(real_station, schedule)`. Hoy solo `("140", "Sch1")` -> `modelo_iso_est140Sch1.pkl` + `scaler_est140Sch1.pkl`. Las 7 combinaciones restantes caen al `rule_fallback` hasta que el equipo de datos entregue mas artefactos.
-- Los modelos esperan los 5 features del simulador en este orden: `distancia, fuerza, ampers, volts, watts`.
-- IsolationForest interpretacion: `predict == -1` -> anomalia; `decision_function` se mapea a `score` en `[0, 0.99]` via `0.5 - df * 1.5`.
-- Si `joblib`/`scikit-learn` no estan disponibles o el archivo falta, el hook regresa `None` y se usa `rule_fallback`. No abortar el servicio.
+- El hook de integracion vive en `brain/model.py` y carga CleaNet ONNX desde `ONNX_MODEL_DIR` (default `/app/onnx_models`, montado read-only desde `./onnx_models`).
+- Registro por `{real_station}_{schedule}`. Hoy existen `150_Sch1` y `155_Sch2`; el resto queda sin inferencia de modelo porque sus distribuciones no son intercambiables.
+- CleaNet recibe `distancia`, `watts`, `distancia_delta`, `fuerza_delta`, `watts_delta`; los deltas se calculan en tiempo real por `(real_station, schedule)` y se clampean con `clamps.json`.
+- `BUENA` y `POSIBLE_BUENA` se guardan como `BUENO`; `POSIBLE_MALA` y `MALA` se guardan como `MALO` y crean alerta.
+- Si `onnxruntime` no esta disponible, no hay modelo cargable o la combinacion no tiene modelo exacto, el hook regresa `None` y se usa `rule_fallback`. No abortar el servicio.
 - El `rule_fallback` PLC marca `MALO` solo cuando `ampers > 13.5` o `volts < 1.8` con score `>= 0.5`. Mantenerlo conservador para no inundar `alerts` con telemetria que el modelo final descartaria.
 - No mezclar reglas temporales con el contrato del modelo final.
 

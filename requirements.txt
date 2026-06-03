@@ -1,1 +1,4 @@
 paho-mqtt>=2.0.0
+numpy>=1.26.0
+# Instalar solo en el equipo que lea PLC real:
+# pylogix>=1.0.5

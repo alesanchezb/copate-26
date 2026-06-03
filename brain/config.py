@@ -18,12 +18,13 @@ MQTT_TOPIC = os.environ.get("MQTT_TOPIC", "fabrica/linea1/soldadura")
 
 API_HOST = os.environ.get("API_HOST", "0.0.0.0")
 API_PORT = int(os.environ.get("API_PORT", "8000"))
+TELEMETRY_STALE_SECONDS = int(os.environ.get("TELEMETRY_STALE_SECONDS", "30"))
 
 DB_CONFIG = {
     "host": os.environ.get("POSTGRES_HOST", "db"),
     "database": os.environ.get("POSTGRES_DB", "soldadura_db"),
     "user": os.environ.get("POSTGRES_USER", "admin"),
-    "password": os.environ.get("POSTGRES_PASSWORD", "industrial_pass"),
+    "password": os.environ.get("POSTGRES_PASSWORD", "cambia_esta_password"),
 }
 
 

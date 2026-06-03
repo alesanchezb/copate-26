@@ -18,7 +18,8 @@ extras_stub.RealDictCursor = object
 sys.modules.setdefault("psycopg2", psycopg2_stub)
 sys.modules.setdefault("psycopg2.extras", extras_stub)
 
-from repository import normalize_payload  # noqa: E402
+import repository  # noqa: E402
+from repository import evaluate_detection, normalize_payload  # noqa: E402
 
 
 class BrainNormalizationTests(unittest.TestCase):
@@ -112,6 +113,61 @@ class BrainNormalizationTests(unittest.TestCase):
         self.assertEqual(event["weld_id"], 8)
         self.assertEqual(event["pallet_id"], "-1")
         self.assertEqual(event["status"], "MALO")
+
+    def test_model_levels_map_to_operational_status(self) -> None:
+        original_predict = repository.predict
+        try:
+            repository.predict = lambda event: {
+                "is_anomaly": False,
+                "score": 0.15,
+                "confidence": 0.7,
+                "source": "cleanet_150_Sch1",
+                "reason": "CleaNet POSIBLE_BUENA",
+                "model_key": "150_Sch1",
+                "model_level": "POSIBLE_BUENA",
+                "model_level_num": 1,
+                "model_score": 0.15,
+                "model_is_fallback": False,
+            }
+            possible_good = evaluate_detection(
+                {
+                    "real_station": "150",
+                    "schedule": "Sch1",
+                    "ampers": 12,
+                    "volts": 2.0,
+                    "voltaje": 2.0,
+                    "presion": 90,
+                }
+            )
+            self.assertEqual(possible_good["status"], "BUENO")
+            self.assertEqual(possible_good["model_level"], "POSIBLE_BUENA")
+
+            repository.predict = lambda event: {
+                "is_anomaly": True,
+                "score": 0.25,
+                "confidence": 0.82,
+                "source": "cleanet_150_Sch1",
+                "reason": "CleaNet POSIBLE_MALA",
+                "model_key": "150_Sch1",
+                "model_level": "POSIBLE_MALA",
+                "model_level_num": 2,
+                "model_score": 0.25,
+                "model_is_fallback": False,
+            }
+            possible_bad = evaluate_detection(
+                {
+                    "real_station": "150",
+                    "schedule": "Sch1",
+                    "ampers": 12,
+                    "volts": 2.0,
+                    "voltaje": 2.0,
+                    "presion": 90,
+                }
+            )
+            self.assertEqual(possible_bad["status"], "MALO")
+            self.assertEqual(possible_bad["model_level"], "POSIBLE_MALA")
+        finally:
+            repository.predict = original_predict
 
 
 if __name__ == "__main__":

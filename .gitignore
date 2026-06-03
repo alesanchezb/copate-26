@@ -1,9 +1,18 @@
 # Credenciales — NUNCA subir al repositorio
 .env
 
+# Basura local / metadatos de sistema
+.DS_Store
+.python-version
+.claude/
+*:Zone.Identifier
+.ipynb_checkpoints/
+
 # Datos generados por los contenedores en runtime
 postgres_data/*
 !postgres_data/.gitkeep
+data/*.db
+InspeccionManual.db
 
 # Entorno virtual de Python (para el simulador local)
 .venv/

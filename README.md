@@ -1,468 +1,167 @@
 # Sistema de Alertas de Soldadura
 
-Aplicacion de monitoreo y alertas en tiempo real para una celda de soldadura.
+Aplicacion de monitoreo en tiempo real para una celda industrial de soldadura de busbars. El proyecto esta preparado para operar de dos formas:
 
-El sistema actual incluye:
+- En desarrollo: con `simulator.py`, que reproduce datos historicos reales usando tags y handshake tipo PLC.
+- En planta: con `plc_adapter.py`, que lee los PLC reales con `pylogix` y publica el mismo contrato MQTT que consume `brain`.
 
-- `broker`: Mosquitto para recibir eventos MQTT.
-- `db`: PostgreSQL para persistir estaciones, eventos y alertas.
-- `cerebro`: servicio FastAPI que consume MQTT, genera alertas y sirve la interfaz web.
-- `simulator.py`: simulador local de PLC que reproduce datos historicos reales con tags `NewData...`, handshake y publicacion MQTT.
+La interfaz queda disponible en `http://localhost:8000`.
 
-La interfaz principal queda disponible en `http://localhost:8000`.
-
-## Requisitos del proyecto
-
-- Docker con soporte para `docker compose`
-- Python 3.10 o superior
-- `uv` para crear el entorno virtual del simulador
-
-## Estructura rapida
+## Estructura del proyecto
 
 ```text
-docker-compose.yml   -> infraestructura principal
-.env                 -> variables locales del proyecto
-.env.example         -> plantilla de variables
-brain/               -> servicio web y logica de alertas
-simulator.py         -> simulador PLC realista y emisor MQTT
-plc_gateway/         -> adapter PLC/simulador hacia MQTT
-db_init/init.sql     -> inicializacion de la base de datos
+brain/                 Servicio FastAPI, consumidor MQTT, alertas, UI y persistencia
+plc_gateway/           Frontera PLC/MQTT compartida por simulador y adapter real
+simulator.py           Emisor local con PLC simulado e historico real
+plc_adapter.py         Emisor para PLC real en planta
+db_init/               Inicializacion de PostgreSQL
+mosquitto/             Configuracion del broker MQTT
+onnx_models/           Modelos CleaNet ONNX montados read-only en Docker
+data/                  Fuente historica local primaria del simulador
+docs/                  Manuales de usuario, planta y operacion
+references/            Material de referencia que no se ejecuta en produccion
+tests/                 Pruebas unitarias
 ```
 
-## 1. Instalacion en Linux
+`references/planta/plc_reader_y_app/` conserva el codigo que si se uso como referencia real de maquila. No es una dependencia directa del programa nuevo; sirve para auditoria, comparacion de tags y respaldo historico.
 
-Estas instrucciones estan pensadas para Ubuntu 24.04 o 22.04.
+## Flujo de datos
 
-### 1.1 Instalar Docker Engine y Docker Compose
-
-Docker recomienda instalar Engine y el plugin de Compose desde su repositorio oficial:
-
-Referencia oficial:
-- https://docs.docker.com/engine/install/ubuntu/
-- https://docs.docker.com/compose/install/
-
-Ejecuta:
-
-```bash
-sudo apt update
-sudo apt install -y ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
+```text
+PLC real o simulador
+  -> lee tags NewData/ForceLast/DistLast/AmpsLast/VoltsLast/WattsLast/ElctCtr/PalletId
+  -> adapter MQTT normaliza evento
+  -> topic fabrica/linea1/soldadura
+  -> brain consume MQTT
+  -> modelo CleaNet o rule_fallback conservador
+  -> PostgreSQL
+  -> UI web y APIs
 ```
 
-```bash
-sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null <<EOF
-Types: deb
-URIs: https://download.docker.com/linux/ubuntu
-Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
-Components: stable
-Architectures: $(dpkg --print-architecture)
-Signed-By: /etc/apt/keyrings/docker.asc
-EOF
-```
+`brain` no lee tags PLC directamente. Esa separacion es intencional: en planta solo se cambia el emisor (`plc_adapter.py`), no la UI, la base de datos ni el motor de alertas.
 
-```bash
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-```
+## Requisitos
 
-Valida la instalacion:
+- Docker con `docker compose`
+- Python 3.10 o superior
+- `uv` recomendado para el entorno Python local
+- Para PLC real: acceso de red a los PLC y `pylogix` instalado en el equipo que ejecuta `plc_adapter.py`
 
-```bash
-docker --version
-docker compose version
-sudo docker run hello-world
-```
-
-Opcional, para no usar `sudo` con Docker:
-
-```bash
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-### 1.2 Instalar Python y uv
-
-Referencia oficial de `uv`:
-- https://docs.astral.sh/uv/getting-started/installation/
-
-Primero valida Python:
-
-```bash
-python3 --version
-```
-
-Si no lo tienes:
-
-```bash
-sudo apt update
-sudo apt install -y python3 python3-venv
-```
-
-Instala `uv`:
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-Recarga la sesion si el comando no aparece inmediatamente:
-
-```bash
-source ~/.bashrc
-```
-
-Valida:
-
-```bash
-uv --version
-```
-
-## 2. Instalacion en Windows
-
-Estas instrucciones estan pensadas para Windows 10/11 con Docker Desktop.
-
-### 2.1 Instalar Docker Desktop
-
-Referencias oficiales:
-- https://docs.docker.com/desktop/setup/install/windows-install/
-- https://docs.docker.com/compose/install/
-
-Pasos:
-
-1. Instala o actualiza WSL si aun no lo tienes:
-
-```powershell
-wsl --install
-wsl --update
-```
-
-2. Descarga e instala Docker Desktop desde la documentacion oficial.
-3. Durante la instalacion, deja habilitada la opcion de backend `WSL 2`.
-4. Abre Docker Desktop y espera a que quede en estado listo.
-
-Valida en PowerShell:
-
-```powershell
-docker --version
-docker compose version
-docker run hello-world
-```
-
-### 2.2 Instalar Python y uv
-
-Referencia oficial de `uv`:
-- https://docs.astral.sh/uv/getting-started/installation/
-
-Instala Python 3.10 o superior si aun no lo tienes.
-
-Valida:
-
-```powershell
-python --version
-```
-
-Instala `uv` en PowerShell:
-
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-Cierra y abre la terminal si `uv` no aparece de inmediato.
-
-Valida:
-
-```powershell
-uv --version
-```
-
-## 3. Clonar el proyecto
-
-```bash
-git clone <URL_DEL_REPOSITORIO>
-cd copate-26
-```
-
-En Windows, si usas PowerShell:
-
-```powershell
-git clone <URL_DEL_REPOSITORIO>
-cd copate-26
-```
-
-## 4. Configurar variables de entorno
-
-Crea tu archivo local a partir de la plantilla:
-
-Linux:
+## Configuracion inicial
 
 ```bash
 cp .env.example .env
-```
-
-Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Variables actuales:
-
-```env
-POSTGRES_USER=admin
-POSTGRES_PASSWORD=cambia_esta_password
-POSTGRES_DB=soldadura_db
-LINE_ID=linea1
-LINE_LABEL=Control de linea 1
-OPERATOR_NAME=Operador 01
-OPERATOR_LINE_LABEL=Linea de soldadura alfa
-```
-
-`docker compose` leerá automaticamente este `.env` cuando levantes el proyecto.
-
-## 5. Levantar la infraestructura
-
-Desde la raiz del repositorio:
-
-```bash
 docker compose up --build -d
-```
-
-Valida que todo este arriba:
-
-```bash
-docker compose ps
 ```
 
 Servicios esperados:
 
-- `broker`
-- `db`
-- `cerebro`
+- `broker`: Mosquitto MQTT en puerto `1883`
+- `db`: PostgreSQL en puerto `5432`
+- `cerebro`: API/UI en puerto `8000`
 
-Ver logs:
+Revisar estado:
 
 ```bash
+docker compose ps
 docker compose logs -f broker db cerebro
 ```
 
-## 6. Preparar el entorno Python del simulador
+## Ejecutar con simulador
 
-El simulador se ejecuta fuera de Docker y publica eventos a `localhost:1883`. Usa como fuente primaria `plc_reader_y_app/WeldParameters.db` y como fallback el CSV historico incluido en esa misma carpeta.
-
-### Linux
+Crear entorno Python:
 
 ```bash
 uv venv
 source .venv/bin/activate
-uv pip install paho-mqtt
+uv pip install -r requirements.txt
 ```
 
-### Windows PowerShell
+En Windows PowerShell:
 
 ```powershell
 uv venv
 .venv\Scripts\Activate.ps1
-uv pip install paho-mqtt
+uv pip install -r requirements.txt
 ```
 
-Si PowerShell bloquea la activacion:
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.venv\Scripts\Activate.ps1
-```
-
-## 7. Ejecutar el sistema
-
-### 7.1 Abrir la interfaz
-
-Con Docker ya levantado, abre:
-
-```text
-http://localhost:8000
-```
-
-### 7.2 Ejecutar el simulador
-
-Con el entorno virtual activo:
-
-Linux:
+Ejecutar:
 
 ```bash
 python3 simulator.py
 ```
 
-Windows:
-
-```powershell
-python simulator.py
-```
-
-El simulador enviara soldaduras al broker MQTT y la interfaz empezara a reflejar actividad, logs y alertas.
-
 Opciones utiles:
 
 ```bash
-python simulator.py --limit 100
-python simulator.py --speed 8
-python simulator.py --timestamp-mode historical
+python3 simulator.py --limit 100
+python3 simulator.py --speed 8
+python3 simulator.py --timestamp-mode historical
 ```
 
-- `--limit` emite una cantidad fija de lecturas y termina.
-- `--speed` acelera el ritmo historico.
-- `--timestamp-mode historical` conserva timestamps historicos; por defecto usa tiempo actual para que el dashboard de hoy muestre actividad.
+Fuente historica del simulador:
 
-## 8. Comandos utiles
+1. `data/WeldParameters.db`
+2. `references/planta/plc_reader_y_app/WeldParameters.db`
+3. `references/planta/plc_reader_y_app/WeldResults_10Feb_2026_24Feb_2026.csv`
 
-Levantar o reconstruir:
+## Ejecutar con PLC real
+
+Instalar dependencia solo en el equipo lector del PLC:
+
+```bash
+uv pip install "pylogix>=1.0.5"
+```
+
+Con Docker levantado y el broker disponible:
+
+```bash
+python3 plc_adapter.py --broker localhost --topic fabrica/linea1/soldadura
+```
+
+En planta, `--broker` debe apuntar al host donde corre Mosquitto. El adapter usa el mapeo actual:
+
+- `172.16.14.1`: estaciones reales `140` y `145`
+- `172.16.15.1`: estaciones reales `150` y `155`
+- `Sch1`: primera soldadura de la estacion
+- `Sch2`: segunda soldadura de la estacion
+
+Mas detalle en `docs/IMPLEMENTACION_PLC_PLANTA.md`.
+
+## Verificacion
+
+Pruebas unitarias:
+
+```bash
+python3 -m unittest
+```
+
+Smoke local:
 
 ```bash
 docker compose up --build -d
+python3 simulator.py --limit 100
+curl http://localhost:8000/api/health
+curl http://localhost:8000/api/dashboard
 ```
 
-Detener:
-
-```bash
-docker compose down
-```
-
-Ver estado:
-
-```bash
-docker compose ps
-```
-
-Ver logs:
-
-```bash
-docker compose logs -f broker db cerebro
-```
-
-Reiniciar solo el backend:
-
-```bash
-docker compose restart cerebro
-```
-
-## 9. Verificaciones rapidas
-
-Si todo esta bien:
-
-- `docker compose ps` muestra `broker`, `db` y `cerebro` en estado `Up`
-- `http://localhost:8000` carga la interfaz
-- `python simulator.py` publica eventos sin errores de conexion
-
-## 10. Solucion de problemas
-
-### Docker no arranca
-
-Linux:
-
-```bash
-sudo systemctl status docker
-sudo systemctl start docker
-```
-
-Windows:
-- abre Docker Desktop y espera a que termine de iniciar
-- valida que WSL 2 este habilitado
-
-### Permiso denegado al usar Docker en Linux
-
-Si aparece:
+Luego abrir:
 
 ```text
-permission denied while trying to connect to the docker API
+http://localhost:8000
 ```
 
-agrega tu usuario al grupo `docker` y abre una terminal nueva:
+## Documentacion principal
 
-```bash
-sudo usermod -aG docker $USER
-newgrp docker
-```
+- `docs/MANUAL_USUARIO.md`: operacion diaria, pantallas y respuesta ante alertas.
+- `docs/IMPLEMENTACION_PLC_PLANTA.md`: pasos para instalar el adapter real en planta.
+- `docs/ESTRUCTURA_PROYECTO.md`: que carpeta se ejecuta, que carpeta es referencia y que no tocar.
+- `ARQUITECTURA_PROYECTO.md`: contrato tecnico y decisiones de arquitectura.
 
-Luego valida:
+## Notas importantes
 
-```bash
-docker compose ps
-```
-
-### `docker compose` no existe
-
-Valida:
-
-```bash
-docker compose version
-```
-
-Si falla en Linux, normalmente falta el paquete `docker-compose-plugin`.
-
-### Error de permisos con Docker en Linux
-
-Usa temporalmente:
-
-```bash
-sudo docker compose ps
-```
-
-Y luego agrega tu usuario al grupo `docker`:
-
-```bash
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-### El simulador no conecta al broker
-
-Revisa que Docker este arriba y el puerto `1883` expuesto:
-
-```bash
-docker compose ps
-docker compose logs --tail=100 broker
-```
-
-### El puerto 8000 o 5432 ya esta ocupado
-
-Busca que otro proceso usa el puerto o cambia el mapeo en `docker-compose.yml`.
-
-### La UI abre pero no hay datos
-
-Verifica:
-
-```bash
-docker compose logs --tail=100 cerebro
-```
-
-Y luego ejecuta el simulador.
-
-## 11. Resetear el entorno local
-
-Detener contenedores:
-
-```bash
-docker compose down
-```
-
-Borrar volumen de Postgres y recrear desde cero:
-
-```bash
-docker compose down -v
-docker compose up --build -d
-```
-
-Esto elimina la base de datos local del proyecto.
-
-## 12. Notas del proyecto
-
-- La UI principal ya no depende de Grafana.
-- El sistema esta pensado para funcionar hoy con simulador y despues con una fuente real tipo PLC.
-- El servicio `cerebro` ya normaliza eventos por estacion y guarda alertas en PostgreSQL.
-
-## 13. Referencias oficiales usadas para esta guia
-
-- Docker Engine en Ubuntu: https://docs.docker.com/engine/install/ubuntu/
-- Docker Compose: https://docs.docker.com/compose/install/
-- Docker Desktop en Windows: https://docs.docker.com/desktop/setup/install/windows-install/
-- uv: https://docs.astral.sh/uv/getting-started/installation/
+- `PalletId` del PLC identifica un pallet fisico reutilizable; no representa una pasada unica.
+- La UI, detalle e inferencia agrupan por `pallet_run_id`.
+- `PalletId` 0 o negativo se conserva como dato normal.
+- Si no hay modelo exacto para una combinacion `{real_station}_{schedule}`, `brain/model.py` regresa `None` y se usa `rule_fallback`.
+- El fallback solo marca `MALO` cuando `ampers > 13.5` o `volts < 1.8` con score `>= 0.5`.

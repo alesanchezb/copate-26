@@ -84,11 +84,13 @@ class HistoricalWeldDataSource:
 
     def __init__(
         self,
-        db_path: str | Path = "plc_reader_y_app/WeldParameters.db",
-        csv_path: str | Path = "plc_reader_y_app/WeldResults_10Feb_2026_24Feb_2026.csv",
+        db_path: str | Path = "data/WeldParameters.db",
+        legacy_db_path: str | Path = "references/planta/plc_reader_y_app/WeldParameters.db",
+        csv_path: str | Path = "references/planta/plc_reader_y_app/WeldResults_10Feb_2026_24Feb_2026.csv",
         rng: random.Random | None = None,
     ) -> None:
         self.db_path = Path(db_path)
+        self.legacy_db_path = Path(legacy_db_path)
         self.csv_path = Path(csv_path)
         self.rng = rng or random.Random()
         self._csv_cache: list[dict[str, Any]] | None = None
@@ -97,25 +99,30 @@ class HistoricalWeldDataSource:
     def backend(self) -> str:
         if self.db_path.exists():
             return "sqlite"
+        if self.legacy_db_path.exists():
+            return "legacy_sqlite"
         if self.csv_path.exists():
             return "csv"
         raise FileNotFoundError(
-            f"No existe fuente historica SQLite ({self.db_path}) ni CSV ({self.csv_path})."
+            "No existe fuente historica SQLite "
+            f"({self.db_path} o {self.legacy_db_path}) ni CSV ({self.csv_path})."
         )
 
     def load_window(self, window_size: int = 256) -> list[WeldSample]:
         if window_size <= 0:
             raise ValueError("window_size debe ser mayor a cero")
-        if self.backend == "sqlite":
-            return self._load_sqlite_window(window_size)
+        backend = self.backend
+        if backend in {"sqlite", "legacy_sqlite"}:
+            db_path = self.db_path if backend == "sqlite" else self.legacy_db_path
+            return self._load_sqlite_window(db_path, window_size)
         return self._load_csv_window(window_size)
 
     def iter_windows(self, window_size: int = 256) -> Iterable[list[WeldSample]]:
         while True:
             yield self.load_window(window_size)
 
-    def _load_sqlite_window(self, window_size: int) -> list[WeldSample]:
-        with sqlite3.connect(self.db_path) as conn:
+    def _load_sqlite_window(self, db_path: Path, window_size: int) -> list[WeldSample]:
+        with sqlite3.connect(db_path) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
             min_id, max_id = cur.execute(
